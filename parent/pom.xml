@@ -854,6 +854,34 @@
         </executions>
       </plugin>
 
+      <!-- SPOT BUGS -->
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>3.1.10</version>
+        <configuration>
+          <effort>Max</effort>
+          <threshold>Low</threshold>
+          <xmlOutput>true</xmlOutput>
+          <excludeFilterFile>spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+
+        <!-- dependency on build tool to reference the spotbugs filter-->
+        <dependencies>
+          <dependency>
+            <groupId>io.zeebe</groupId>
+            <artifactId>zb-build-tools</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
   </build>
 
