@@ -18,21 +18,23 @@ package io.zeebe.protocol.intent;
 import io.zeebe.protocol.clientapi.ValueType;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public interface Intent {
   Collection<Class<? extends Intent>> INTENT_CLASSES =
-      Arrays.asList(
-          DeploymentIntent.class,
-          IncidentIntent.class,
-          JobIntent.class,
-          WorkflowInstanceIntent.class,
-          MessageIntent.class,
-          MessageSubscriptionIntent.class,
-          WorkflowInstanceSubscriptionIntent.class,
-          ExporterIntent.class,
-          JobBatchIntent.class,
-          TimerIntent.class,
-          VariableIntent.class);
+      Collections.unmodifiableList(
+          Arrays.asList(
+              DeploymentIntent.class,
+              IncidentIntent.class,
+              JobIntent.class,
+              WorkflowInstanceIntent.class,
+              MessageIntent.class,
+              MessageSubscriptionIntent.class,
+              WorkflowInstanceSubscriptionIntent.class,
+              ExporterIntent.class,
+              JobBatchIntent.class,
+              TimerIntent.class,
+              VariableIntent.class));
 
   Intent UNKNOWN =
       new Intent() {
