@@ -57,7 +57,7 @@ public class Dispatcher extends Actor implements AutoCloseable {
 
   private ActorCondition dataConsumed;
 
-  private Runnable backgroundTask = this::runBackgroundTask;
+  private final Runnable backgroundTask = this::runBackgroundTask;
 
   private final Runnable onClaimComplete = this::signalSubsciptions;
 
@@ -422,7 +422,6 @@ public class Dispatcher extends Actor implements AutoCloseable {
     final Metric fragmentsRead =
         metricsManager
             .newMetric("buffer_fragments_read")
-            .type("counter")
             .label("subscription", subscriptionName)
             .label("buffer", getName())
             .create();

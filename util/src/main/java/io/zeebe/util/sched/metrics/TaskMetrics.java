@@ -25,23 +25,17 @@ public class TaskMetrics implements AutoCloseable {
 
   public TaskMetrics(String taskName, MetricsManager metricsManager) {
     executionCount =
-        metricsManager
-            .newMetric("scheduler_task_execution_count")
-            .type("counter")
-            .label("task", taskName)
-            .create();
+        metricsManager.newMetric("scheduler_task_execution_count").label("task", taskName).create();
 
     totalExecutionTime =
         metricsManager
             .newMetric("scheduler_task_execution_time_total")
-            .type("counter")
             .label("task", taskName)
             .create();
 
     maxExecutionTime =
         metricsManager
             .newMetric("scheduler_task_execution_time_max")
-            .type("gauge")
             .label("task", taskName)
             .create();
   }

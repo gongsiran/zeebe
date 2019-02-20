@@ -30,7 +30,6 @@ public class StreamProcessorMetrics {
     eventsProcessedCountMetric =
         metricsManager
             .newMetric("streamprocessor_events_count")
-            .type("counter")
             .label("processor", processorName)
             .label("action", "processed")
             .label("partition", partitionId)
@@ -39,7 +38,6 @@ public class StreamProcessorMetrics {
     eventsWrittenCountMetric =
         metricsManager
             .newMetric("streamprocessor_events_count")
-            .type("counter")
             .label("processor", processorName)
             .label("action", "written")
             .label("partition", partitionId)
@@ -48,7 +46,6 @@ public class StreamProcessorMetrics {
     eventsSkippedCountMetric =
         metricsManager
             .newMetric("streamprocessor_events_count")
-            .type("counter")
             .label("processor", processorName)
             .label("action", "skipped")
             .label("partition", partitionId)
@@ -57,7 +54,6 @@ public class StreamProcessorMetrics {
     snapshotSizeMetric =
         metricsManager
             .newMetric("streamprocessor_snapshot_last_size_bytes")
-            .type("gauge")
             .label("processor", processorName)
             .label("partition", partitionId)
             .create();
@@ -65,7 +61,6 @@ public class StreamProcessorMetrics {
     snapshotTimeMillisMetric =
         metricsManager
             .newMetric("streamprocessor_snapshot_last_duration_millis")
-            .type("gauge")
             .label("processor", processorName)
             .label("partition", partitionId)
             .create();

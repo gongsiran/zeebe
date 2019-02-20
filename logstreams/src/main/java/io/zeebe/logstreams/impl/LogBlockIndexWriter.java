@@ -132,7 +132,6 @@ public class LogBlockIndexWriter extends Actor {
     snapshotsCreated =
         metricsManager
             .newMetric("logstream_blockidx_snapshots")
-            .type("counter")
             .label("logName", getName())
             .create();
 

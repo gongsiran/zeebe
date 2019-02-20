@@ -148,7 +148,6 @@ public class SystemContext implements AutoCloseable {
     // one-shot metric to submit metadata
     metricsManager
         .newMetric("broker_info")
-        .type("counter")
         .label("version", Broker.VERSION)
         .create()
         .incrementOrdered();

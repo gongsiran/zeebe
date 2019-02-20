@@ -116,7 +116,7 @@ public class DispatcherTest {
                         subscriberName,
                         onConsumption,
                         logBuffer,
-                        metricsManager.newMetric("metric").type("counter").create()));
+                        metricsManager.newMetric("metric").create()));
             return subscriptionSpy;
           }
         };

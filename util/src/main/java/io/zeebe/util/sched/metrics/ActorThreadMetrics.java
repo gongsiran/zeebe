@@ -30,7 +30,6 @@ public class ActorThreadMetrics implements AutoCloseable {
     threadIdleTime =
         metricsManager
             .newMetric("scheduler_thread_runtime_ns")
-            .type("counter")
             .label("thread", threadName)
             .label("mode", "idle")
             .create();
@@ -38,22 +37,16 @@ public class ActorThreadMetrics implements AutoCloseable {
     threadBusyTime =
         metricsManager
             .newMetric("scheduler_thread_runtime_ns")
-            .type("counter")
             .label("thread", threadName)
             .label("mode", "busy")
             .create();
 
     jobExecutionCount =
-        metricsManager
-            .newMetric("scheduler_thread_job_count")
-            .type("counter")
-            .label("thread", threadName)
-            .create();
+        metricsManager.newMetric("scheduler_thread_job_count").label("thread", threadName).create();
 
     taskStealCount =
         metricsManager
             .newMetric("scheduler_thread_task_count")
-            .type("counter")
             .label("thread", threadName)
             .label("type", "steal")
             .create();
@@ -61,7 +54,6 @@ public class ActorThreadMetrics implements AutoCloseable {
     taskExecutionCount =
         metricsManager
             .newMetric("scheduler_thread_task_count")
-            .type("counter")
             .label("thread", threadName)
             .label("type", "run")
             .create();

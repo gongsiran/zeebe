@@ -31,7 +31,6 @@ public class WorkflowInstanceMetrics implements AutoCloseable {
     workflowInstanceEventCanceled =
         metricsManager
             .newMetric("workflow_instance_events_count")
-            .type("counter")
             .label("partition", partitionIdString)
             .label("type", "canceled")
             .create();
@@ -39,7 +38,6 @@ public class WorkflowInstanceMetrics implements AutoCloseable {
     workflowInstanceEventCompleted =
         metricsManager
             .newMetric("workflow_instance_events_count")
-            .type("counter")
             .label("partition", partitionIdString)
             .label("type", "completed")
             .create();
@@ -47,7 +45,6 @@ public class WorkflowInstanceMetrics implements AutoCloseable {
     workflowInstanceEventCreated =
         metricsManager
             .newMetric("workflow_instance_events_count")
-            .type("counter")
             .label("partition", partitionIdString)
             .label("type", "created")
             .create();

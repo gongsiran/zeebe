@@ -62,7 +62,6 @@ public abstract class Conductor extends Actor implements ChannelLifecycleListene
     activeConnectionsMetric =
         metricsManager
             .newMetric("transport_active_connections")
-            .type("gauge")
             .label("transport", transportContext.getName())
             .create();
   }

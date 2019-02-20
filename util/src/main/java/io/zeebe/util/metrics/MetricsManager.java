@@ -40,11 +40,11 @@ public class MetricsManager {
     this.globalLabels = globalLabels;
   }
 
-  public Metric allocate(String name, String type, String description, Map<String, String> labels) {
+  public Metric allocate(String name, Map<String, String> labels) {
     lock.lock();
     try {
       labels.putAll(globalLabels);
-      final Metric metric = new Metric(prefix + name, type, description, labels, onClose);
+      final Metric metric = new Metric(prefix + name, labels, onClose);
       metrics.add(metric);
       return metric;
     } finally {
@@ -80,19 +80,10 @@ public class MetricsManager {
 
   public class MetricBuilder {
     private final String name;
-    private String type;
-    private String description;
     private final Map<String, String> labels = new HashMap<>();
 
     public MetricBuilder(String name) {
       this.name = name;
-      this.type = "counter";
-      this.description = "No description provided";
-    }
-
-    public MetricBuilder type(String type) {
-      this.type = type;
-      return this;
     }
 
     public MetricBuilder label(String name, String value) {
@@ -100,13 +91,8 @@ public class MetricsManager {
       return this;
     }
 
-    public MetricBuilder description(String description) {
-      this.description = description;
-      return this;
-    }
-
     public Metric create() {
-      return MetricsManager.this.allocate(name, type, description, labels);
+      return MetricsManager.this.allocate(name, labels);
     }
   }
 }

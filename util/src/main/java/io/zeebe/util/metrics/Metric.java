@@ -27,17 +27,17 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.AtomicCounter;
 
 public class Metric {
-  public static final byte[] OPENING_CURLY_BRACE = "{".getBytes(StandardCharsets.UTF_8);
-  public static final byte[] CLOSING_CURLY_BRACE = "}".getBytes(StandardCharsets.UTF_8);
-  public static final byte[] NEW_LINE = "\n".getBytes(StandardCharsets.UTF_8);
-  public static final byte[] DOUBLE_QUOTE = "\"".getBytes(StandardCharsets.UTF_8);
-  public static final byte[] COMMA = ",".getBytes(StandardCharsets.UTF_8);
-  public static final byte[] EQUALS = "=".getBytes(StandardCharsets.UTF_8);
-  public static final byte[] WHITESPACE = " ".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] OPENING_CURLY_BRACE = "{".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] CLOSING_CURLY_BRACE = "}".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] NEW_LINE = "\n".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] DOUBLE_QUOTE = "\"".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] COMMA = ",".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] EQUALS = "=".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] WHITESPACE = " ".getBytes(StandardCharsets.UTF_8);
 
   private static class Label {
-    private byte[] name;
-    private byte[] value;
+    private final byte[] name;
+    private final byte[] value;
 
     Label(String name, String value) {
       this.name = name.getBytes(StandardCharsets.UTF_8);
@@ -54,22 +54,13 @@ public class Metric {
 
   private final AtomicCounter value;
   private final byte[] name;
-  private final byte[] type;
-  private final byte[] description;
   private final Label[] labels;
   private final Consumer<Metric> onClose;
 
-  public Metric(
-      String name,
-      String type,
-      String description,
-      Map<String, String> labels,
-      Consumer<Metric> onClose) {
+  public Metric(String name, Map<String, String> labels, Consumer<Metric> onClose) {
     this.onClose = onClose;
     this.value = new AtomicCounter(new UnsafeBuffer(new byte[BitUtil.SIZE_OF_LONG]), 0);
     this.name = name.getBytes(StandardCharsets.UTF_8);
-    this.type = type.getBytes(StandardCharsets.UTF_8);
-    this.description = description.getBytes(StandardCharsets.UTF_8);
     this.labels = new Label[labels.size()];
 
     final List<Entry<String, String>> labelSet = new ArrayList<>(labels.entrySet());
