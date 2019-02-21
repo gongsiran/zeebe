@@ -201,6 +201,10 @@ class ZeebeRocksDb<ColumnFamilyNames extends Enum<ColumnFamilyNames>> extends Ro
   }
 
   private DirectBuffer getValue(long columnFamilyHandle, int keyLength) {
+    if (isInBatch()) {
+      throw new IllegalStateException("get inside a batch might not work as expected!");
+    }
+
     final int valueLength = valueBuffer.capacity();
     try {
       final int readBytes =
@@ -229,6 +233,11 @@ class ZeebeRocksDb<ColumnFamilyNames extends Enum<ColumnFamilyNames>> extends Ro
   }
 
   protected boolean exists(long columnFamilyHandle, DbKey key) {
+
+    if (isInBatch()) {
+      throw new IllegalStateException("exist inside a batch might not work as expected!");
+    }
+
     key.write(keyBuffer, 0);
 
     if (!keyMayExist(
@@ -314,6 +323,11 @@ class ZeebeRocksDb<ColumnFamilyNames extends Enum<ColumnFamilyNames>> extends Ro
 
   private void foreach(
       long columnFamilyHandle, BiConsumer<DirectBuffer, DirectBuffer> keyValuePairConsumer) {
+
+    if (isInBatch()) {
+      throw new IllegalStateException("ForEach inside a batch does not work!");
+    }
+
     try (RocksDbIterator iterator = newIterator(columnFamilyHandle)) {
       for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
         keyViewBuffer.wrap(iterator.key());
@@ -401,6 +415,9 @@ class ZeebeRocksDb<ColumnFamilyNames extends Enum<ColumnFamilyNames>> extends Ro
       ValueType valueInstance,
       KeyValuePairVisitor<KeyType, ValueType> iteratorConsumer,
       RocksDbIterator iterator) {
+    if (isInBatch()) {
+      throw new IllegalStateException("Visiting inside a batch does not work!");
+    }
     keyViewBuffer.wrap(iterator.key());
     valueViewBuffer.wrap(iterator.value());
 
