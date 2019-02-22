@@ -22,6 +22,7 @@ import io.zeebe.db.DbKey;
 import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
 import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.ZeebeDbException;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.EnumMap;
@@ -174,14 +175,22 @@ class ZeebeRocksDb<ColumnFamilyNames extends Enum<ColumnFamilyNames>> extends Ro
   }
 
   @Override
-  public void batch(Runnable operations) {
+  public void batch(Runnable operations) throws ZeebeDbException {
+    if (isInBatch()) {
+      operations.run();
+    } else {
+      executeInNewBatch(operations);
+    }
+  }
+
+  private void executeInNewBatch(Runnable operations) {
     try (WriteOptions options = new WriteOptions()) {
       batch = new RocksDbBatch(keyBatchBuffer, valueBatchBuffer);
 
       operations.run();
       write(options, batch);
     } catch (RocksDBException e) {
-      throw new RuntimeException("Unexpected error occurred during RocksDB batch operation", e);
+      throw new ZeebeDbException("Unexpected error occurred during RocksDB batch operation", e);
     } finally {
       if (batch != null) {
         batch.close();

@@ -35,8 +35,10 @@ public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extend
    * families inside this batch are possible.
    *
    * @param operations the operations
+   * @throws ZeebeDbException thrown when something went wrong during writing into the batch or
+   *     committing the batch
    */
-  void batch(Runnable operations);
+  void batch(Runnable operations) throws ZeebeDbException;
 
   /**
    * Creates an instance of a specific column family to access and store key-value pairs in that

@@ -88,7 +88,7 @@ public class DeploymentDistributor {
     deploymentsState.putPendingDeployment(key, pendingDeploymentDistribution);
     pendingDeploymentFutures.put(key, pushedFuture);
 
-    pushDeploymentToPartitions(key);
+    pushDeploymentToPartitions(key, pendingDeploymentDistribution);
 
     return pushedFuture;
   }
@@ -97,9 +97,10 @@ public class DeploymentDistributor {
     return deploymentsState.removePendingDeployment(key);
   }
 
-  private void pushDeploymentToPartitions(final long key) {
+  private void pushDeploymentToPartitions(
+      final long key, final PendingDeploymentDistribution pendingDeploymentDistribution) {
     if (!partitionsToDistributeTo.isEmpty()) {
-      deployOnMultiplePartitions(key);
+      deployOnMultiplePartitions(key, pendingDeploymentDistribution);
     } else {
       LOG.trace("No other partitions to distribute deployment.");
       LOG.trace("Deployment finished.");
@@ -107,11 +108,10 @@ public class DeploymentDistributor {
     }
   }
 
-  private void deployOnMultiplePartitions(final long key) {
+  private void deployOnMultiplePartitions(
+      final long key, final PendingDeploymentDistribution pendingDeploymentDistribution) {
     LOG.trace("Distribute deployment to other partitions.");
 
-    final PendingDeploymentDistribution pendingDeploymentDistribution =
-        deploymentsState.getPendingDeployment(key);
     final DirectBuffer directBuffer = pendingDeploymentDistribution.getDeployment();
     pendingDeploymentDistribution.setDistributionCount(partitionsToDistributeTo.size());
 

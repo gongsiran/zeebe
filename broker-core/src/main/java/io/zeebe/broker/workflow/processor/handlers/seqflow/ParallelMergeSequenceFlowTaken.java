@@ -17,6 +17,7 @@
  */
 package io.zeebe.broker.workflow.processor.handlers.seqflow;
 
+import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.workflow.model.element.ExecutableFlowNode;
 import io.zeebe.broker.workflow.model.element.ExecutableSequenceFlow;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
@@ -24,6 +25,7 @@ import io.zeebe.broker.workflow.processor.EventOutput;
 import io.zeebe.broker.workflow.processor.handlers.AbstractHandler;
 import io.zeebe.broker.workflow.state.ElementInstance;
 import io.zeebe.broker.workflow.state.IndexedRecord;
+import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,10 +52,13 @@ public class ParallelMergeSequenceFlowTaken<T extends ExecutableSequenceFlow>
     final ExecutableSequenceFlow sequenceFlow = context.getElement();
     final ExecutableFlowNode gateway = sequenceFlow.getTarget();
 
-    eventOutput.deferEvent(context.getRecord());
-
     final List<IndexedRecord> mergeableRecords =
         getMergeableRecords(context, gateway, scopeInstance);
+
+    final TypedRecord<WorkflowInstanceRecord> record = context.getRecord();
+    final WorkflowInstanceRecord value = record.getValue();
+    final WorkflowInstanceIntent intent = (WorkflowInstanceIntent) record.getMetadata().getIntent();
+    mergeableRecords.add(new IndexedRecord(record.getKey(), intent, value));
     if (mergeableRecords.size() == gateway.getIncoming().size()) {
 
       // consume all deferred tokens and spawn a new one to continue after the gateway

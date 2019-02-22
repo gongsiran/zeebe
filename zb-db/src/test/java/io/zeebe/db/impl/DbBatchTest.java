@@ -98,6 +98,81 @@ public class DbBatchTest {
   }
 
   @Test
+  public void shouldGetOldValueInBatch() {
+    // given
+    oneKey.wrapLong(1);
+    oneValue.wrapLong(-1);
+
+    twoKey.wrapLong(52000);
+    twoValue.wrapLong(192313);
+
+    threeKey.wrapLong(Short.MAX_VALUE);
+    threeValue.wrapLong(Integer.MAX_VALUE);
+
+    // when
+    oneColumnFamily.put(oneKey, oneValue);
+    zeebeDb.batch(
+      () -> {
+        oneColumnFamily.put(oneKey, twoValue);
+        final DbLong oldValue = oneColumnFamily.get(oneKey);
+        assertThat(oldValue.getValue()).isEqualTo(-1);
+      });
+
+    // then
+    assertThat(oneColumnFamily.get(oneKey).getValue()).isEqualTo(192313);
+  }
+
+  @Test
+  public void shouldGetNoValueInBatch() {
+    // given
+    oneKey.wrapLong(1);
+    oneValue.wrapLong(-1);
+
+    twoKey.wrapLong(52000);
+    twoValue.wrapLong(192313);
+
+    threeKey.wrapLong(Short.MAX_VALUE);
+    threeValue.wrapLong(Integer.MAX_VALUE);
+
+    // when
+    zeebeDb.batch(
+      () -> {
+        oneColumnFamily.put(oneKey, twoValue);
+        final DbLong oldValue = oneColumnFamily.get(oneKey);
+        assertThat(oldValue).isNull();
+      });
+
+    // then
+    assertThat(oneColumnFamily.get(oneKey).getValue()).isEqualTo(192313);
+  }
+
+  @Test
+  public void shouldGetOldValueAfterBatchInBatch() {
+    // given
+    oneKey.wrapLong(1);
+    oneValue.wrapLong(-1);
+
+    twoKey.wrapLong(52000);
+    twoValue.wrapLong(192313);
+
+    threeKey.wrapLong(Short.MAX_VALUE);
+    threeValue.wrapLong(Integer.MAX_VALUE);
+
+    // when
+    oneColumnFamily.put(oneKey, oneValue);
+    zeebeDb.batch(
+      () -> {
+        zeebeDb.batch( () -> oneColumnFamily.put(oneKey, twoValue));
+        final DbLong oldValue = oneColumnFamily.get(oneKey);
+        assertThat(oldValue.getValue()).isEqualTo(-1);
+      });
+
+    // then
+    assertThat(oneColumnFamily.get(oneKey).getValue()).isEqualTo(192313);
+  }
+
+
+  @Test
   public void shouldWriteAndDeleteInBatch() {
     // given
     oneKey.wrapLong(1);
