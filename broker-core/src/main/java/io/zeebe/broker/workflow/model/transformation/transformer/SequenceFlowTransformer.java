@@ -78,6 +78,14 @@ public class SequenceFlowTransformer implements ModelElementTransformer<Sequence
     final ConditionExpression conditionExpression = element.getConditionExpression();
     if (conditionExpression != null) {
       final String rawExpression = conditionExpression.getTextContent();
+
+      final CompiledJsonCondition compiledJsonCondition;
+      final int index = rawExpression.indexOf('.');
+      if (index == -1)
+      {
+
+      }
+
       final CompiledJsonCondition compiledExpression =
           JsonConditionFactory.createCondition(rawExpression);
       sequenceFlow.setCondition(compiledExpression);

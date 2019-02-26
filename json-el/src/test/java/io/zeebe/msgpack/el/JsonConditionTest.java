@@ -24,6 +24,8 @@ import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scala.collection.JavaConverters;
+import scala.collection.mutable.HashSet;
 
 public class JsonConditionTest {
 
@@ -56,6 +58,26 @@ public class JsonConditionTest {
     result =
         interpreter.eval(condition.getCondition(), asMsgPack(c -> c.put("foo", 2).put("bar", 3)));
     assertThat(result).isFalse();
+  }
+
+  @Test
+  public void shouldReturnOnlyUniqueVariableNames() {
+    final CompiledJsonCondition condition =
+        JsonConditionFactory.createCondition("$.foo == $.bar || $.foo > 2 || $.bar <= 2");
+    assertThat(condition.isValid()).isTrue();
+
+    final HashSet<String> actualVariables = condition.getCondition().variableNames();
+    assertThat(JavaConverters.asJavaCollection(actualVariables)).containsExactly("$");
+  }
+
+  @Test
+  public void shouldReturnVariableNames() {
+    final CompiledJsonCondition condition =
+        JsonConditionFactory.createCondition("foo == bar || foo > 2 || bar <= 2");
+    assertThat(condition.isValid()).isTrue();
+
+    final HashSet<String> actualVariables = condition.getCondition().variableNames();
+    assertThat(JavaConverters.asJavaCollection(actualVariables)).containsExactly("foo", "bar");
   }
 
   @Test

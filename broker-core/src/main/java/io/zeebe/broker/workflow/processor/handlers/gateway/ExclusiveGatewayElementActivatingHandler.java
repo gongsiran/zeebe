@@ -69,6 +69,7 @@ public class ExclusiveGatewayElementActivatingHandler<T extends ExecutableExclus
     }
 
     final WorkflowInstanceRecord value = context.getValue();
+
     final DirectBuffer payload =
         context
             .getElementInstanceState()
