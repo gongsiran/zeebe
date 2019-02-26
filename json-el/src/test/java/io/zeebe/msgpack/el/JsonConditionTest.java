@@ -77,7 +77,8 @@ public class JsonConditionTest {
     assertThat(condition.isValid()).isTrue();
 
     final HashSet<String> actualVariables = condition.getCondition().variableNames();
-    assertThat(JavaConverters.asJavaCollection(actualVariables)).containsExactly("foo", "bar");
+    assertThat(JavaConverters.asJavaCollection(actualVariables))
+        .containsExactlyInAnyOrder("foo", "bar");
   }
 
   @Test

@@ -65,21 +65,13 @@ case class JsonString(value: DirectBuffer) extends JsonObject with JsonConstant 
   token.setValue(value, 0, value.capacity())
 }
 
-case class JsonPath(var value: String) extends JsonObject {
+case class JsonPath(val variableName: String, val value: Option[String]) extends JsonObject {
 
-  //  def variableName(): String = {
-  val index = value.indexOf('.')
-  val variableName: String =
-    if (index == -1) {
-      value;
-    }
-    else {
-      val name = value.substring(0, index);
-      value = "$" + value.substring(index, value.size)
-      name
-    }
-
-  val query: JsonPathQuery = new JsonPathQueryCompiler().compile(value)
+  val query: JsonPathQuery = if (value.isDefined) {
+    new JsonPathQueryCompiler().compile(value.get)
+  } else {
+    null
+  }
 
   var id_ = -1
 

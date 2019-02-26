@@ -89,7 +89,10 @@ object JsonConditionParser extends JavaTokenParsers {
     * Any JSON path expression which starts with '$' followed by non-space characters.
     */
   private lazy val jsonPath: Parser[JsonPath] =
-    """\$([^\s])*""".r ^^ JsonPath
+    ((stringLiteral) ~ (("." ~> """([\S])*""".r).?)) ^^ (m => {
+      JsonPath(m._1, m._2)
+    })
+
 
   /**
     * Double or single quotes enclosing a sequence of chars.
