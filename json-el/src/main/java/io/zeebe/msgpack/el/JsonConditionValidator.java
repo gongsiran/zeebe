@@ -41,7 +41,7 @@ public class JsonConditionValidator {
             final JsonPath path = (JsonPath) object;
             final JsonPathQuery query = path.query();
 
-            if (!query.isValid()) {
+            if (query != null && !query.isValid()) {
               errors.add(query.getErrorReason());
             }
           }

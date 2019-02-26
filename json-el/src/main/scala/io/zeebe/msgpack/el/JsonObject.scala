@@ -28,6 +28,21 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
+/**
+  * Copyright © 2017 camunda services GmbH (info@camunda.com)
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
 package io.zeebe.msgpack.el
 
 import io.zeebe.msgpack.jsonpath.{JsonPathQuery, JsonPathQueryCompiler}
@@ -68,7 +83,7 @@ case class JsonString(value: DirectBuffer) extends JsonObject with JsonConstant 
 case class JsonPath(val variableName: String, val value: Option[String]) extends JsonObject {
 
   val query: JsonPathQuery = if (value.isDefined) {
-    new JsonPathQueryCompiler().compile(value.get)
+    new JsonPathQueryCompiler().compile("$" + value.get)
   } else {
     null
   }
