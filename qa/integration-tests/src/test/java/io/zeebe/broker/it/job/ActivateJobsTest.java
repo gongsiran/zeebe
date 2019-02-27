@@ -43,8 +43,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -55,7 +55,7 @@ public class ActivateJobsTest {
   private static final Map<String, Object> CUSTOM_HEADERS = Collections.singletonMap("foo", "bar");
   private static final Map<String, Object> PAYLOAD = Collections.singletonMap("hello", "world");
 
-  @Rule public ClusteringRule clusteringRule = new ClusteringRule();
+  @ClassRule public static ClusteringRule clusteringRule = new ClusteringRule();
   @Rule public GrpcClientRule clientRule = new GrpcClientRule(clusteringRule);
 
   @Rule public Timeout timeout = Timeout.seconds(60);
@@ -65,13 +65,6 @@ public class ActivateJobsTest {
   @Before
   public void setUp() {
     client = clientRule.getClient();
-  }
-
-  @After
-  public void tearDown() {
-    if (client != null) {
-      client.close();
-    }
   }
 
   @Test
@@ -108,6 +101,7 @@ public class ActivateJobsTest {
 
     final List<Instant> deadlines =
         jobRecords(JobIntent.ACTIVATED)
+            .filter(j -> jobKeys.contains(j.getKey()))
             .limit(amount)
             .map(r -> r.getValue().getDeadline())
             .collect(Collectors.toList());
@@ -157,8 +151,16 @@ public class ActivateJobsTest {
             .boxed()
             .flatMap(
                 i ->
-                    client.newActivateJobsCommand().jobType(JOB_TYPE).amount(1).workerName("worker")
-                        .timeout(1000).send().join().getJobs().stream())
+                    client
+                        .newActivateJobsCommand()
+                        .jobType(JOB_TYPE)
+                        .amount(1)
+                        .workerName("worker")
+                        .timeout(1000)
+                        .send()
+                        .join()
+                        .getJobs()
+                        .stream())
             .map(ActivatedJob::getKey)
             .map(Protocol::decodePartitionId)
             .collect(Collectors.toList());

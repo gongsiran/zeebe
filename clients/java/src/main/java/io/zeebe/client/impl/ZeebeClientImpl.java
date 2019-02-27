@@ -122,7 +122,7 @@ public class ZeebeClientImpl implements ZeebeClient {
   public void close() {
     closeables.forEach(CloseableSilently::close);
 
-    executorService.shutdown();
+    executorService.shutdownNow();
 
     try {
       if (!executorService.awaitTermination(15, TimeUnit.SECONDS)) {
@@ -134,7 +134,7 @@ public class ZeebeClientImpl implements ZeebeClient {
           "Unexpected interrupted awaiting termination of job worker executor", e);
     }
 
-    channel.shutdown();
+    channel.shutdownNow();
 
     try {
       if (!channel.awaitTermination(15, TimeUnit.SECONDS)) {

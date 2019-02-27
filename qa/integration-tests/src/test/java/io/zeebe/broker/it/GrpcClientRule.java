@@ -30,6 +30,7 @@ import io.zeebe.model.bpmn.builder.ServiceTaskBuilder;
 import io.zeebe.protocol.intent.DeploymentIntent;
 import io.zeebe.protocol.intent.JobIntent;
 import io.zeebe.test.util.record.RecordingExporter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -38,6 +39,7 @@ import org.junit.rules.ExternalResource;
 public class GrpcClientRule extends ExternalResource {
 
   private final Consumer<ZeebeClientBuilder> configurator;
+  private final List<Long> instances;
 
   protected ZeebeClient client;
 
@@ -60,6 +62,8 @@ public class GrpcClientRule extends ExternalResource {
 
   private GrpcClientRule(final Consumer<ZeebeClientBuilder> configurator) {
     this.configurator = configurator;
+
+    instances = new ArrayList<>();
   }
 
   @Override
@@ -71,6 +75,7 @@ public class GrpcClientRule extends ExternalResource {
 
   @Override
   protected void after() {
+    instances.forEach(key -> client.newCancelInstanceCommand(key).send());
     client.close();
     client = null;
   }
@@ -90,7 +95,9 @@ public class GrpcClientRule extends ExternalResource {
   public List<Integer> getPartitions() {
     final Topology topology = client.newTopologyRequest().send().join();
 
-    return topology.getBrokers().stream()
+    return topology
+        .getBrokers()
+        .stream()
         .flatMap(i -> i.getPartitions().stream())
         .filter(PartitionInfo::isLeader)
         .map(PartitionInfo::getPartitionId)
@@ -136,6 +143,8 @@ public class GrpcClientRule extends ExternalResource {
             .send()
             .join()
             .getWorkflowInstanceKey();
+
+    instances.add(workflowInstanceKey);
 
     return RecordingExporter.jobRecords(JobIntent.CREATED)
         .withWorkflowInstanceKey(workflowInstanceKey)
