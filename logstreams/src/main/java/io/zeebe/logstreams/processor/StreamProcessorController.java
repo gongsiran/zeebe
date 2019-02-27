@@ -294,9 +294,16 @@ public class StreamProcessorController extends Actor {
       eventProcessor = streamProcessor.onEvent(event);
 
       if (eventProcessor != null) {
-        zeebeDb.transaction(eventProcessor::processEvent);
-        metrics.incrementEventsProcessedCount();
-        actor.runUntilDone(this::executeSideEffects);
+        try {
+          zeebeDb.transaction(eventProcessor::processEvent);
+          metrics.incrementEventsProcessedCount();
+          actor.runUntilDone(this::executeSideEffects);
+        } catch (final Exception e) {
+          LOG.error(ERROR_MESSAGE_PROCESSING_FAILED_SKIP_EVENT, getName(), event, e);
+          zeebeDb.transaction(() -> eventProcessor.processingFailed(e));
+          // send rejection etc
+          actor.runUntilDone(this::executeSideEffects);
+        }
       } else {
         skipRecord();
       }

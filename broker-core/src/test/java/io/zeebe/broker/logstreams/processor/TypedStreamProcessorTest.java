@@ -25,12 +25,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.zeebe.broker.logstreams.state.DefaultZeebeDbFactory;
+import io.zeebe.broker.logstreams.state.ZeebeState;
+import io.zeebe.broker.util.RecordStream;
 import io.zeebe.broker.util.Records;
 import io.zeebe.broker.util.StreamProcessorControl;
 import io.zeebe.broker.util.TestStreams;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LoggedEvent;
 import io.zeebe.protocol.clientapi.RecordType;
+import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
 import io.zeebe.protocol.impl.record.value.deployment.ResourceType;
@@ -93,18 +96,16 @@ public class TypedStreamProcessorTest {
   @Test
   public void shouldWriteSourceEventAndProducerOnBatch() {
     // given
-    final TypedStreamProcessor streamProcessor =
-        env.newStreamProcessor()
-            .keyGenerator(keyGenerator)
-            .onCommand(ValueType.DEPLOYMENT, DeploymentIntent.CREATE, new BatchProcessor())
-            .build();
-
     streamProcessorControl =
         streams.initStreamProcessor(
             STREAM_NAME,
             STREAM_PROCESSOR_ID,
             DefaultZeebeDbFactory.DEFAULT_DB_FACTORY,
-            (db) -> streamProcessor);
+            (db) ->
+                env.newStreamProcessor()
+                    .zeebeState(new ZeebeState(db))
+                    .onCommand(ValueType.DEPLOYMENT, DeploymentIntent.CREATE, new BatchProcessor())
+                    .build());
     streamProcessorControl.start();
     final long firstEventPosition =
         streams
@@ -137,18 +138,17 @@ public class TypedStreamProcessorTest {
   @Test
   public void shouldSkipFailingEvent() {
     // given
-    final TypedStreamProcessor streamProcessor =
-        env.newStreamProcessor()
-            .keyGenerator(keyGenerator)
-            .onCommand(ValueType.DEPLOYMENT, DeploymentIntent.CREATE, new ErrorProneProcessor())
-            .build();
-
     streamProcessorControl =
         streams.initStreamProcessor(
             STREAM_NAME,
             STREAM_PROCESSOR_ID,
             DefaultZeebeDbFactory.DEFAULT_DB_FACTORY,
-            (db) -> streamProcessor);
+            (db) ->
+                env.newStreamProcessor()
+                    .zeebeState(new ZeebeState(db))
+                    .onCommand(
+                        ValueType.DEPLOYMENT, DeploymentIntent.CREATE, new ErrorProneProcessor())
+                    .build());
     streamProcessorControl.start();
     final AtomicLong requestId = new AtomicLong(0);
     final AtomicInteger requestStreamId = new AtomicInteger(0);
@@ -161,9 +161,10 @@ public class TypedStreamProcessorTest {
               requestId.set(serverResponse.getRequestId());
               requestStreamId.set(serverResponse.getRemoteStreamId());
 
-              return invocationOnMock.callRealMethod();
+              return true;
             }));
 
+    final long failingKey = keyGenerator.nextKey();
     streams
         .newRecord(STREAM_NAME)
         .event(deployment("foo", ResourceType.BPMN_XML))
@@ -171,7 +172,7 @@ public class TypedStreamProcessorTest {
         .intent(DeploymentIntent.CREATE)
         .requestId(255L)
         .requestStreamId(99)
-        .key(keyGenerator.nextKey())
+        .key(failingKey)
         .write();
     final long secondEventPosition =
         streams
@@ -206,6 +207,17 @@ public class TypedStreamProcessorTest {
 
     assertThat(requestId.get()).isEqualTo(255L);
     assertThat(requestStreamId.get()).isEqualTo(99);
+
+    final TypedRecord<DeploymentRecord> deploymentRejection =
+        new RecordStream(streams.events(STREAM_NAME))
+            .onlyDeploymentRecords()
+            .onlyRejections()
+            .withIntent(DeploymentIntent.CREATE)
+            .getFirst();
+
+    assertThat(deploymentRejection.getKey()).isEqualTo(failingKey);
+    assertThat(deploymentRejection.getMetadata().getRejectionType())
+        .isEqualTo(RejectionType.PROCESSING_ERROR);
   }
 
   protected DeploymentRecord deployment(final String name, final ResourceType resourceType) {

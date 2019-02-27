@@ -432,6 +432,13 @@ public class TestStreams {
         }
 
         @Override
+        public void processingFailed(Exception exception) {
+          if (actualProcessor != null) {
+            actualProcessor.processingFailed(exception);
+          }
+        }
+
+        @Override
         public boolean executeSideEffects() {
           return actualProcessor == null || actualProcessor.executeSideEffects();
         }

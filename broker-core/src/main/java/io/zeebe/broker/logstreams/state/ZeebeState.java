@@ -20,6 +20,7 @@ package io.zeebe.broker.logstreams.state;
 import io.zeebe.broker.incident.processor.IncidentState;
 import io.zeebe.broker.job.JobState;
 import io.zeebe.broker.logstreams.processor.KeyGenerator;
+import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.subscription.message.state.MessageStartEventSubscriptionState;
 import io.zeebe.broker.subscription.message.state.MessageState;
 import io.zeebe.broker.subscription.message.state.MessageSubscriptionState;
@@ -28,6 +29,7 @@ import io.zeebe.broker.workflow.deployment.distribute.processor.state.Deployment
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.protocol.Protocol;
+import io.zeebe.protocol.clientapi.ValueType;
 
 public class ZeebeState {
 
@@ -40,6 +42,7 @@ public class ZeebeState {
   private final MessageStartEventSubscriptionState messageStartEventSubscriptionState;
   private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState;
   private final IncidentState incidentState;
+  private final BlackList blackList;
 
   public ZeebeState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
     this(Protocol.DEPLOYMENT_PARTITION, zeebeDb);
@@ -55,6 +58,7 @@ public class ZeebeState {
     messageStartEventSubscriptionState = new MessageStartEventSubscriptionState(zeebeDb);
     workflowInstanceSubscriptionState = new WorkflowInstanceSubscriptionState(zeebeDb);
     incidentState = new IncidentState(zeebeDb);
+    blackList = new BlackList(zeebeDb);
   }
 
   public DeploymentsState getDeploymentState() {
@@ -91,5 +95,22 @@ public class ZeebeState {
 
   public KeyGenerator getKeyGenerator() {
     return keyState;
+  }
+
+  public BlackList getBlackList() {
+    return blackList;
+  }
+
+  public void blacklist(TypedRecord record) {
+    if (record.getMetadata().getValueType() == ValueType.WORKFLOW_INSTANCE) {
+      blackList.blacklist(record);
+    }
+  }
+
+  public boolean isOnBlacklist(TypedRecord record) {
+    if (record.getMetadata().getValueType() == ValueType.WORKFLOW_INSTANCE) {
+      return blackList.isOnBlacklist(record);
+    }
+    return false;
   }
 }
