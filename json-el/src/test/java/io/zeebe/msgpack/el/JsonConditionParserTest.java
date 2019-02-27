@@ -47,6 +47,8 @@ public class JsonConditionParserTest {
           {"$.foo >= .5"},
           {"$.foo >= -.5"},
           {"$.foo >= $.bar"},
+          {"foo >= bar"},
+          {"foo.bar >= bar.foo"},
           {"2 < 4"},
           {"$.foo > 2 && $.foo < 4"},
           {"$.foo > 2 && $.foo < 4 && $.bar > 12"},

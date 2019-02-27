@@ -36,6 +36,8 @@ public class JsonConditionInterpreterTest {
     return Arrays.asList(
         new Object[][] {
           {"$.foo == 'bar'", asMsgPack("foo", "bar"), true},
+          {"foo.bar == 'bar'", asMsgPack("bar", "bar"), true},
+          {"foo.bar == 'bar'", asMsgPack("bar", "baz"), false},
           {"$.foo == 'bar'", asMsgPack("foo", "baz"), false},
           {"$.foo == true", asMsgPack("foo", true), true},
           {"$.foo == true", asMsgPack("foo", false), false},
@@ -81,6 +83,7 @@ public class JsonConditionInterpreterTest {
           {"$.foo == 1 || $.foo > 2 && $.foo > 3", asMsgPack("foo", 2), false},
           {"$.foo == 1 || $.foo > 2 && $.foo > 3", asMsgPack("foo", 3), false},
           {"($.foo == 1 || $.foo > 2) && $.foo > 3", asMsgPack("foo", 4), true},
+          {"(foo == 1 || foo > 2) && foo > 3", asMsgPack("4"), true},
           {"($.foo == 1 || $.foo > 2) && $.foo > 3", asMsgPack("foo", 1), false},
           {"($.foo == 1 || $.foo > 2) && $.foo > 3", asMsgPack("foo", 2), false},
           {"($.foo == 1 || $.foo > 2) && $.foo > 3", asMsgPack("foo", 3), false},

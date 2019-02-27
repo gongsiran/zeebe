@@ -83,7 +83,13 @@ case class JsonString(value: DirectBuffer) extends JsonObject with JsonConstant 
 case class JsonPath(val variableName: String, val value: Option[String]) extends JsonObject {
 
   val query: JsonPathQuery = if (value.isDefined) {
-    new JsonPathQueryCompiler().compile("$" + value.get)
+    val matchedValue = value.get
+    if (!matchedValue.isEmpty) {
+      new JsonPathQueryCompiler().compile("$" + value.get)
+    }
+    else {
+      null
+    }
   } else {
     null
   }
