@@ -30,6 +30,7 @@ import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.protocol.Protocol;
 import io.zeebe.protocol.clientapi.ValueType;
+import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 
 public class ZeebeState {
 
@@ -97,19 +98,16 @@ public class ZeebeState {
     return keyState;
   }
 
-  public BlackList getBlackList() {
-    return blackList;
-  }
-
   public void blacklist(TypedRecord record) {
     if (record.getMetadata().getValueType() == ValueType.WORKFLOW_INSTANCE) {
-      blackList.blacklist(record);
+      blackList.blacklist(((WorkflowInstanceRecord) record.getValue()).getWorkflowInstanceKey());
     }
   }
 
   public boolean isOnBlacklist(TypedRecord record) {
     if (record.getMetadata().getValueType() == ValueType.WORKFLOW_INSTANCE) {
-      return blackList.isOnBlacklist(record);
+      return blackList.isOnBlacklist(
+          ((WorkflowInstanceRecord) record.getValue()).getWorkflowInstanceKey());
     }
     return false;
   }

@@ -17,12 +17,10 @@
  */
 package io.zeebe.broker.logstreams.state;
 
-import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
-import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 
 public class BlackList {
 
@@ -35,17 +33,13 @@ public class BlackList {
         zeebeDb.createColumnFamily(ZbColumnFamilies.BLACKLIST, workflowInstanceKey, DbNil.INSTANCE);
   }
 
-  public void blacklist(TypedRecord<WorkflowInstanceRecord> workflowInstance) {
-    final long key = workflowInstance.getValue().getWorkflowInstanceKey();
+  public void blacklist(long key) {
     workflowInstanceKey.wrapLong(key);
-
     blackListColumnFamily.put(workflowInstanceKey, DbNil.INSTANCE);
   }
 
-  public boolean isOnBlacklist(TypedRecord<WorkflowInstanceRecord> workflowInstance) {
-    final long key = workflowInstance.getValue().getWorkflowInstanceKey();
+  public boolean isOnBlacklist(long key) {
     workflowInstanceKey.wrapLong(key);
-
     return blackListColumnFamily.exists(workflowInstanceKey);
   }
 }

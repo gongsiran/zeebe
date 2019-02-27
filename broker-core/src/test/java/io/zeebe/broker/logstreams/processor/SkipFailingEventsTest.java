@@ -24,9 +24,9 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import io.zeebe.broker.logstreams.state.BlackList;
 import io.zeebe.broker.logstreams.state.DefaultZeebeDbFactory;
 import io.zeebe.broker.logstreams.state.ZeebeState;
+import io.zeebe.broker.util.MockTypedRecord;
 import io.zeebe.broker.util.Records;
 import io.zeebe.broker.util.StreamProcessorControl;
 import io.zeebe.broker.util.TestStreams;
@@ -75,7 +75,7 @@ public class SkipFailingEventsTest {
   private StreamProcessorControl streamProcessorControl;
   private KeyGenerator keyGenerator;
   private TypedStreamEnvironment env;
-  private BlackList blackList;
+  private ZeebeState zeebeState;
 
   @Before
   public void setUp() {
@@ -104,9 +104,7 @@ public class SkipFailingEventsTest {
             STREAM_PROCESSOR_ID,
             DefaultZeebeDbFactory.DEFAULT_DB_FACTORY,
             (db) -> {
-              final ZeebeState zeebeState = new ZeebeState(db);
-              blackList = zeebeState.getBlackList();
-
+              zeebeState = new ZeebeState(db);
               return env.newStreamProcessor()
                   .zeebeState(zeebeState)
                   .onEvent(
@@ -161,14 +159,14 @@ public class SkipFailingEventsTest {
         .until(o -> o.isPresent())
         .get();
 
-    doRepeatedly(() -> {}).until(o -> processor.getProcessCount() > 0);
-
     // then
-    final TypedEventImpl typedEvent = new TypedEventImpl();
+    assertThat(processor.getProcessCount()).isEqualTo(1);
+
     final RecordMetadata metadata = new RecordMetadata();
     metadata.valueType(ValueType.WORKFLOW_INSTANCE);
-    typedEvent.wrap(null, metadata, workflowInstance(1));
-    assertThat(blackList.isOnBlacklist(typedEvent)).isTrue();
+    final MockTypedRecord<WorkflowInstanceRecord> mockTypedRecord =
+        new MockTypedRecord<>(0, metadata, workflowInstance(1));
+    assertThat(zeebeState.isOnBlacklist(mockTypedRecord)).isTrue();
 
     verify(dumpProcessor, times(1)).processRecord(any(), any(), any(), any());
     assertThat(dumpProcessor.processedInstances).containsExactly(2L);
