@@ -18,6 +18,7 @@
 package io.zeebe.broker.logstreams.processor;
 
 import io.zeebe.broker.Loggers;
+import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.log.LoggedEvent;
@@ -44,7 +45,7 @@ public class TypedStreamProcessor implements StreamProcessor {
   protected final ServerOutput output;
   protected final RecordProcessorMap recordProcessors;
   protected final List<StreamProcessorLifecycleAware> lifecycleListeners = new ArrayList<>();
-  private final KeyGenerator keyGenerator;
+  protected final ZeebeState zeebeState;
 
   protected final RecordMetadata metadata = new RecordMetadata();
   protected final EnumMap<ValueType, Class<? extends UnpackedObject>> eventRegistry;
@@ -63,11 +64,11 @@ public class TypedStreamProcessor implements StreamProcessor {
       final RecordProcessorMap recordProcessors,
       final List<StreamProcessorLifecycleAware> lifecycleListeners,
       final EnumMap<ValueType, Class<? extends UnpackedObject>> eventRegistry,
-      final KeyGenerator keyGenerator,
+      final ZeebeState zeebeState,
       final TypedStreamEnvironment environment) {
     this.output = output;
     this.recordProcessors = recordProcessors;
-    this.keyGenerator = keyGenerator;
+    this.zeebeState = zeebeState;
     recordProcessors.values().forEachRemaining(p -> this.lifecycleListeners.add(p));
 
     this.lifecycleListeners.addAll(lifecycleListeners);
@@ -82,10 +83,10 @@ public class TypedStreamProcessor implements StreamProcessor {
   @Override
   public void onOpen(final StreamProcessorContext context) {
     final LogStream logStream = context.getLogStream();
-    this.streamWriter = new TypedStreamWriterImpl(logStream, eventRegistry, keyGenerator);
+    this.streamWriter = new TypedStreamWriterImpl(logStream, eventRegistry, getKeyGenerator());
 
     this.eventProcessorWrapper =
-        new DelegatingEventProcessor(context.getId(), output, logStream, streamWriter);
+        new DelegatingEventProcessor(context.getId(), output, logStream, streamWriter, zeebeState);
 
     this.actor = context.getActorControl();
     this.streamProcessorContext = context;
@@ -134,6 +135,7 @@ public class TypedStreamProcessor implements StreamProcessor {
     protected final LogStream logStream;
     protected final TypedStreamWriterImpl writer;
     protected final TypedResponseWriterImpl responseWriter;
+    private final ZeebeState zeebeState;
 
     protected TypedRecordProcessor<?> eventProcessor;
     protected TypedEventImpl event;
@@ -144,11 +146,13 @@ public class TypedStreamProcessor implements StreamProcessor {
         final int streamProcessorId,
         final ServerOutput output,
         final LogStream logStream,
-        final TypedStreamWriterImpl writer) {
+        final TypedStreamWriterImpl writer,
+        final ZeebeState zeebeState) {
       this.streamProcessorId = streamProcessorId;
       this.logStream = logStream;
       this.writer = writer;
       this.responseWriter = new TypedResponseWriterImpl(output, logStream.getPartitionId());
+      this.zeebeState = zeebeState;
     }
 
     public void wrap(
@@ -162,38 +166,47 @@ public class TypedStreamProcessor implements StreamProcessor {
 
     @Override
     public void processEvent() {
-      try {
+      resetOutput();
 
-        writer.reset();
-        responseWriter.reset();
+      // default side effect is responses; can be changed by processor
+      sideEffectProducer = responseWriter;
 
-        this.writer.configureSourceContext(streamProcessorId, position);
-
-        // default side effect is responses; can be changed by processor
-        sideEffectProducer = responseWriter;
-
+      final boolean isNotOnBlacklist = !zeebeState.isOnBlacklist(event);
+      if (isNotOnBlacklist) {
         eventProcessor.processRecord(
             position, event, responseWriter, writer, this::setSideEffectProducer);
-      } catch (Exception exception) {
-        final String errorMessage =
-            String.format(PROCESSING_ERROR_MESSAGE, event, exception.getMessage());
-        LOG.error(errorMessage, exception);
-
-        if (event.metadata.getRecordType() == RecordType.COMMAND) {
-          sendCommandRejectionOnException(errorMessage);
-        } else if (event.getMetadata().getRecordType() == RecordType.EVENT) {
-          // TODO(#2028) clean up state
-        }
-
-        // re-throw such that stream process controller skips this record
-        throw exception;
       }
     }
 
-    private void sendCommandRejectionOnException(String errorMessage) {
+    @Override
+    public void processingFailed(Exception exception) {
+      resetOutput();
+
+      final String errorMessage =
+          String.format(PROCESSING_ERROR_MESSAGE, event, exception.getMessage());
+      LOG.error(errorMessage, exception);
+
+      if (event.metadata.getRecordType() == RecordType.COMMAND) {
+        sendCommandRejectionOnException(errorMessage);
+        writeCommandRejectionOnException(errorMessage);
+      } else if (event.getMetadata().getRecordType() == RecordType.EVENT) {
+        zeebeState.blacklist(event);
+        // TODO(#2028) clean up state
+      }
+    }
+
+    private void resetOutput() {
       responseWriter.reset();
+      writer.reset();
+      this.writer.configureSourceContext(streamProcessorId, position);
+    }
+
+    private void writeCommandRejectionOnException(String errorMessage) {
+      writer.appendRejection(event, RejectionType.PROCESSING_ERROR, errorMessage);
+    }
+
+    private void sendCommandRejectionOnException(String errorMessage) {
       responseWriter.writeRejectionOnCommand(event, RejectionType.PROCESSING_ERROR, errorMessage);
-      responseWriter.flush();
     }
 
     public void setSideEffectProducer(final SideEffectProducer sideEffectProducer) {
@@ -224,7 +237,7 @@ public class TypedStreamProcessor implements StreamProcessor {
   }
 
   public KeyGenerator getKeyGenerator() {
-    return keyGenerator;
+    return zeebeState.getKeyGenerator();
   }
 
   public TypedStreamWriterImpl getStreamWriter() {
