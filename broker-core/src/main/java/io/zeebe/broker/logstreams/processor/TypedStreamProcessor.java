@@ -166,10 +166,7 @@ public class TypedStreamProcessor implements StreamProcessor {
 
     @Override
     public void processEvent() {
-      writer.reset();
-      responseWriter.reset();
-
-      this.writer.configureSourceContext(streamProcessorId, position);
+      resetOutput();
 
       // default side effect is responses; can be changed by processor
       sideEffectProducer = responseWriter;
@@ -183,6 +180,8 @@ public class TypedStreamProcessor implements StreamProcessor {
 
     @Override
     public void processingFailed(Exception exception) {
+      resetOutput();
+
       final String errorMessage =
           String.format(PROCESSING_ERROR_MESSAGE, event, exception.getMessage());
       LOG.error(errorMessage, exception);
@@ -196,14 +195,17 @@ public class TypedStreamProcessor implements StreamProcessor {
       }
     }
 
-    private void writeCommandRejectionOnException(String errorMessage) {
+    private void resetOutput() {
+      responseWriter.reset();
       writer.reset();
       this.writer.configureSourceContext(streamProcessorId, position);
+    }
+
+    private void writeCommandRejectionOnException(String errorMessage) {
       writer.appendRejection(event, RejectionType.PROCESSING_ERROR, errorMessage);
     }
 
     private void sendCommandRejectionOnException(String errorMessage) {
-      responseWriter.reset();
       responseWriter.writeRejectionOnCommand(event, RejectionType.PROCESSING_ERROR, errorMessage);
     }
 
