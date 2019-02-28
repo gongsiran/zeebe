@@ -30,6 +30,8 @@ import io.zeebe.protocol.clientapi.RecordType;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.clientapi.ValueType;
 import io.zeebe.protocol.impl.record.RecordMetadata;
+import io.zeebe.protocol.intent.Intent;
+import io.zeebe.protocol.intent.WorkflowInstanceRelatedIntent;
 import io.zeebe.transport.ServerOutput;
 import io.zeebe.util.ReflectUtil;
 import io.zeebe.util.sched.ActorControl;
@@ -40,6 +42,7 @@ import org.slf4j.Logger;
 
 @SuppressWarnings({"unchecked"})
 public class TypedStreamProcessor implements StreamProcessor {
+
   private static final Logger LOG = Loggers.WORKFLOW_PROCESSOR_LOGGER;
 
   protected final ServerOutput output;
@@ -189,10 +192,24 @@ public class TypedStreamProcessor implements StreamProcessor {
       if (event.metadata.getRecordType() == RecordType.COMMAND) {
         sendCommandRejectionOnException(errorMessage);
         writeCommandRejectionOnException(errorMessage);
-      } else if (event.getMetadata().getRecordType() == RecordType.EVENT) {
-        zeebeState.blacklist(event);
-        // TODO(#2028) clean up state
       }
+
+      final Intent intent = event.getMetadata().getIntent();
+      if (isWorkflowInstanceRelated(intent)) {
+        if (shouldBeBlacklisted(intent)) {
+          zeebeState.blacklist(event);
+        }
+      }
+    }
+
+    private boolean shouldBeBlacklisted(Intent intent) {
+      final WorkflowInstanceRelatedIntent workflowInstanceRelatedIntent =
+          (WorkflowInstanceRelatedIntent) intent;
+      return workflowInstanceRelatedIntent.shouldBlacklistInstanceOnError();
+    }
+
+    private boolean isWorkflowInstanceRelated(Intent intent) {
+      return intent instanceof WorkflowInstanceRelatedIntent;
     }
 
     private void resetOutput() {

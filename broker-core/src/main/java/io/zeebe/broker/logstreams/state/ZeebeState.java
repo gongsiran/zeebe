@@ -28,9 +28,9 @@ import io.zeebe.broker.subscription.message.state.WorkflowInstanceSubscriptionSt
 import io.zeebe.broker.workflow.deployment.distribute.processor.state.DeploymentsState;
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
+import io.zeebe.msgpack.UnpackedObject;
 import io.zeebe.protocol.Protocol;
-import io.zeebe.protocol.clientapi.ValueType;
-import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
+import io.zeebe.protocol.WorkflowInstanceRelated;
 
 public class ZeebeState {
 
@@ -99,15 +99,22 @@ public class ZeebeState {
   }
 
   public void blacklist(TypedRecord record) {
-    if (record.getMetadata().getValueType() == ValueType.WORKFLOW_INSTANCE) {
-      blackList.blacklist(((WorkflowInstanceRecord) record.getValue()).getWorkflowInstanceKey());
+    final UnpackedObject value = record.getValue();
+    if (value instanceof WorkflowInstanceRelated) {
+      final long workflowInstanceKey = ((WorkflowInstanceRelated) value).getWorkflowInstanceKey();
+      if (workflowInstanceKey >= 0) {
+        blackList.blacklist(workflowInstanceKey);
+      }
     }
   }
 
   public boolean isOnBlacklist(TypedRecord record) {
-    if (record.getMetadata().getValueType() == ValueType.WORKFLOW_INSTANCE) {
-      return blackList.isOnBlacklist(
-          ((WorkflowInstanceRecord) record.getValue()).getWorkflowInstanceKey());
+    final UnpackedObject value = record.getValue();
+    if (value instanceof WorkflowInstanceRelated) {
+      final long workflowInstanceKey = ((WorkflowInstanceRelated) value).getWorkflowInstanceKey();
+      if (workflowInstanceKey >= 0) {
+        return blackList.isOnBlacklist(workflowInstanceKey);
+      }
     }
     return false;
   }
