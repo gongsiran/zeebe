@@ -20,16 +20,19 @@ import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logBlockInd
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamRootServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamServiceName;
+import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.readOnlyLogBlockIndexServiceName;
 import static io.zeebe.util.EnsureUtil.ensureFalse;
 import static io.zeebe.util.EnsureUtil.ensureGreaterThanOrEqual;
 
 import io.zeebe.logstreams.impl.log.fs.FsLogStorage;
 import io.zeebe.logstreams.impl.log.fs.FsLogStorageConfiguration;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.impl.service.FsLogStorageService;
 import io.zeebe.logstreams.impl.service.LogBlockIndexService;
 import io.zeebe.logstreams.impl.service.LogBlockIndexWriterService;
 import io.zeebe.logstreams.impl.service.LogStreamService;
+import io.zeebe.logstreams.impl.service.ReadOnlyLogBlockIndexService;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.spi.LogStorage;
 import io.zeebe.logstreams.state.StateStorage;
@@ -227,6 +230,8 @@ public class LogStreamBuilder {
   private ServiceName<LogStream> addServices(final CompositeServiceBuilder installOperation) {
     final ServiceName<LogStorage> logStorageServiceName = logStorageServiceName(logName);
     final ServiceName<LogBlockIndex> logBlockIndexServiceName = logBlockIndexServiceName(logName);
+    final ServiceName<ReadOnlyLogBlockIndex> readOnlyLogBlockIndexServiceName =
+        readOnlyLogBlockIndexServiceName(logName);
     final ServiceName<LogBlockIndexWriter> logBlockIndexWriterServiceName =
         logBlockIndexWriterService(logName);
     final ServiceName<LogStream> logStreamServiceName = logStreamServiceName(logName);
@@ -242,6 +247,12 @@ public class LogStreamBuilder {
     final LogBlockIndexService logBlockIndexService = new LogBlockIndexService(stateStorage);
     installOperation.createService(logBlockIndexServiceName, logBlockIndexService).install();
 
+    final ReadOnlyLogBlockIndexService readOnlyLogBlockIndexService =
+        new ReadOnlyLogBlockIndexService(stateStorage);
+    installOperation
+        .createService(readOnlyLogBlockIndexServiceName, readOnlyLogBlockIndexService)
+        .install();
+
     final LogBlockIndexWriterService logBlockIndexWriterService =
         new LogBlockIndexWriterService(this);
     installOperation
@@ -255,6 +266,8 @@ public class LogStreamBuilder {
         .createService(logStreamServiceName, logStreamService)
         .dependency(logStorageServiceName, logStreamService.getLogStorageInjector())
         .dependency(logBlockIndexServiceName, logStreamService.getLogBlockIndexInjector())
+        .dependency(
+            readOnlyLogBlockIndexServiceName, logStreamService.getReadOnlyLogBlockIndexInjector())
         .dependency(
             logBlockIndexWriterServiceName, logStreamService.getLogBockIndexWriterInjector())
         .install();

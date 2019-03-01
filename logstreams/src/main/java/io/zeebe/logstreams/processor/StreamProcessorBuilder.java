@@ -17,7 +17,6 @@ package io.zeebe.logstreams.processor;
 
 import io.zeebe.logstreams.impl.service.LogStreamServiceNames;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
-import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.DisabledLogStreamWriter;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamReader;
@@ -126,7 +125,9 @@ public class StreamProcessorBuilder {
             .dependency(LogStreamServiceNames.logStreamServiceName(logName))
             .dependency(LogStreamServiceNames.logWriteBufferServiceName(logName))
             .dependency(LogStreamServiceNames.logStorageServiceName(logName))
-            .dependency(LogStreamServiceNames.logBlockIndexServiceName(logName));
+            .dependency(
+                LogStreamServiceNames.logBlockIndexServiceName(logName),
+                service.getLogBlockIndexInjector());
 
     if (additionalDependencies != null) {
       additionalDependencies.forEach((d) -> serviceBuilder.dependency(d));
@@ -163,8 +164,8 @@ public class StreamProcessorBuilder {
     ctx.setSnapshotPeriod(snapshotPeriod);
     ctx.setSnapshotController(snapshotController);
 
-    logStreamReader = new BufferedLogStreamReader();
-    ctx.setLogStreamReader(logStreamReader);
+    // logStreamReader = new BufferedLogStreamReader();
+    // ctx.setLogStreamReader(logStreamReader);
 
     if (readOnly) {
       logStreamWriter = new DisabledLogStreamWriter();

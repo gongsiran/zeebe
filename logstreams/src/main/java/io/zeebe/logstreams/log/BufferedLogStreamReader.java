@@ -18,7 +18,7 @@ package io.zeebe.logstreams.log;
 import io.zeebe.logstreams.impl.CompleteEventsInBlockProcessor;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
 import io.zeebe.logstreams.impl.LoggedEventImpl;
-import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.spi.LogStorage;
 import io.zeebe.logstreams.spi.ReadResultProcessor;
 import io.zeebe.util.allocation.AllocatedBuffer;
@@ -45,7 +45,7 @@ public class BufferedLogStreamReader implements LogStreamReader {
   // wrapped logstream
   private LogStream logStream;
   private LogStorage logStorage;
-  private LogBlockIndex logBlockIndex;
+  private ReadOnlyLogBlockIndex logBlockIndex;
 
   // state
   private IteratorState state;
@@ -88,15 +88,15 @@ public class BufferedLogStreamReader implements LogStreamReader {
   @Override
   public void wrap(final LogStream log, final long position) {
     logStream = log;
-    wrap(log.getLogStorage(), log.getLogBlockIndex(), position);
+    wrap(log.getLogStorage(), log.getReadOnlyLogBlockIndex(), position);
   }
 
-  public void wrap(final LogStorage logStorage, final LogBlockIndex logBlockIndex) {
+  public void wrap(final LogStorage logStorage, final ReadOnlyLogBlockIndex logBlockIndex) {
     wrap(logStorage, logBlockIndex, FIRST_POSITION);
   }
 
   public void wrap(
-      final LogStorage logStorage, final LogBlockIndex logBlockIndex, final long position) {
+      final LogStorage logStorage, final ReadOnlyLogBlockIndex logBlockIndex, final long position) {
     this.logStorage = logStorage;
     this.logBlockIndex = logBlockIndex;
 

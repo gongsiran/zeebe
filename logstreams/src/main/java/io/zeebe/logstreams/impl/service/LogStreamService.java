@@ -31,6 +31,7 @@ import io.zeebe.logstreams.impl.LogBlockIndexWriter;
 import io.zeebe.logstreams.impl.LogStorageAppender;
 import io.zeebe.logstreams.impl.LogStreamBuilder;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.spi.LogStorage;
 import io.zeebe.servicecontainer.CompositeServiceBuilder;
@@ -51,6 +52,7 @@ public class LogStreamService implements LogStream, Service<LogStream> {
 
   private final Injector<LogStorage> logStorageInjector = new Injector<>();
   private final Injector<LogBlockIndex> logBlockIndexInjector = new Injector<>();
+  private Injector<ReadOnlyLogBlockIndex> readOnlyLogBlockIndexInjector = new Injector<>();
   private final Injector<LogBlockIndexWriter> logBockIndexWriterInjector = new Injector<>();
 
   private final ServiceContainer serviceContainer;
@@ -71,6 +73,7 @@ public class LogStreamService implements LogStream, Service<LogStream> {
 
   private LogStorage logStorage;
   private LogBlockIndex logBlockIndex;
+  private ReadOnlyLogBlockIndex readOnlyLogBlockIndex;
   private LogBlockIndexWriter logBlockIndexWriter;
 
   private ActorFuture<Dispatcher> writeBufferFuture;
@@ -198,6 +201,11 @@ public class LogStreamService implements LogStream, Service<LogStream> {
   }
 
   @Override
+  public ReadOnlyLogBlockIndex getReadOnlyLogBlockIndex() {
+    return logBlockIndex;
+  }
+
+  @Override
   public LogBlockIndexWriter getLogBlockIndexWriter() {
     return logBlockIndexWriter;
   }
@@ -277,6 +285,10 @@ public class LogStreamService implements LogStream, Service<LogStream> {
 
   public Injector<LogBlockIndex> getLogBlockIndexInjector() {
     return logBlockIndexInjector;
+  }
+
+  public Injector<ReadOnlyLogBlockIndex> getReadOnlyLogBlockIndexInjector() {
+    return readOnlyLogBlockIndexInjector;
   }
 
   public Injector<LogBlockIndexWriter> getLogBockIndexWriterInjector() {

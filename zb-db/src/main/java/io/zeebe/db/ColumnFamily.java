@@ -36,6 +36,20 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
   void put(KeyType key, ValueType value);
 
   /**
+   * Deletes the key-value pair with the given key from the column family.
+   *
+   * @param key the key which identifies the pair
+   */
+  void delete(KeyType key);
+
+  /**
+   * Checks if the column family has any entry.
+   *
+   * @return <code>true</code> if the column family has no entry
+   */
+  boolean isEmpty();
+
+  /**
    * The corresponding stored value in the column family to the given key.
    *
    * @param key the key
@@ -103,24 +117,10 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
   void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor);
 
   /**
-   * Deletes the key-value pair with the given key from the column family.
-   *
-   * @param key the key which identifies the pair
-   */
-  void delete(KeyType key);
-
-  /**
    * Checks for key existence in the column family.
    *
    * @param key the key to look for
    * @return true if the key exist in this column family, false otherwise
    */
   boolean exists(KeyType key);
-
-  /**
-   * Checks if the column family has any entry.
-   *
-   * @return <code>true</code> if the column family has no entry
-   */
-  boolean isEmpty();
 }

@@ -15,15 +15,11 @@
  */
 package io.zeebe.logstreams.impl.log.index;
 
-import io.zeebe.db.ColumnFamily;
-import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
-import io.zeebe.db.impl.DbLong;
 import io.zeebe.logstreams.spi.SnapshotSupport;
 import io.zeebe.logstreams.state.StateSnapshotController;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
 import io.zeebe.logstreams.state.StateStorage;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Block index, mapping an event's position to the physical address of the block in which it resides
@@ -37,26 +33,20 @@ import java.util.concurrent.atomic.AtomicLong;
  * block in which it resides in storage. Then, the block can be scanned for the event position
  * requested.
  */
-public class LogBlockIndex implements SnapshotSupport {
-
+public class LogBlockIndex extends ReadOnlyLogBlockIndex implements SnapshotSupport {
   private final StateSnapshotController stateSnapshotController;
-  private ColumnFamily<DbLong, DbLong> blockPositionToAddress;
-
-  private final DbLong blockPosition = new DbLong();
-  private final DbLong value = new DbLong();
-  private ZeebeDb db;
-
-  private long lastVirtualPosition = -1;
 
   public LogBlockIndex(
       ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, StateStorage stateStorage) {
+    super(dbFactory, stateStorage);
     this.stateSnapshotController = new StateSnapshotController(dbFactory, stateStorage);
   }
 
   public void openDb() {
     db = stateSnapshotController.openDb();
     blockPositionToAddress =
-        db.createColumnFamily(LogBlockColumnFamilies.BLOCK_POSITION_ADDRESS, blockPosition, value);
+        db.createColumnFamily(
+            LogBlockColumnFamilies.BLOCK_POSITION_ADDRESS, blockPosition, blockAddress);
   }
 
   public void closeDb() throws Exception {
@@ -66,53 +56,7 @@ public class LogBlockIndex implements SnapshotSupport {
     }
   }
 
-  /**
-   * Returns the physical address of the block in which the log entry identified by the provided
-   * position resides.
-   *
-   * @param entryPosition a virtual log position
-   * @return the physical address of the block containing the log entry identified by the provided
-   *     virtual position
-   */
-  public synchronized long lookupBlockAddress(final long entryPosition) {
-    final long blockPosition = lookupBlockPosition(entryPosition);
-    if (blockPosition == -1) {
-      return -1;
-    }
-
-    this.blockPosition.wrapLong(blockPosition);
-    final DbLong address = blockPositionToAddress.get(this.blockPosition);
-
-    return address != null ? address.getValue() : -1;
-  }
-
-  /**
-   * Returns the position of the first log entry of the the block in which the log entry identified
-   * by the provided position resides.
-   *
-   * @param entryPosition a virtual log position
-   * @return the position of the block containing the log entry identified by the provided virtual
-   *     position
-   */
-  public synchronized long lookupBlockPosition(final long entryPosition) {
-    final AtomicLong blockPosition = new AtomicLong(-1);
-
-    blockPositionToAddress.whileTrue(
-        (key, val) -> {
-          final long currentBlockPosition = key.getValue();
-
-          if (currentBlockPosition <= entryPosition) {
-            blockPosition.set(currentBlockPosition);
-            return true;
-          } else {
-            return false;
-          }
-        });
-
-    return blockPosition.get();
-  }
-
-  public synchronized void addBlock(long blockPosition, long blockAddress) {
+  public void addBlock(long blockPosition, long blockAddress) {
     if (lastVirtualPosition >= blockPosition) {
       final String errorMessage =
           String.format(
@@ -123,9 +67,9 @@ public class LogBlockIndex implements SnapshotSupport {
 
     lastVirtualPosition = blockPosition;
     this.blockPosition.wrapLong(blockPosition);
-    value.wrapLong(blockAddress);
+    this.blockAddress.wrapLong(blockAddress);
 
-    blockPositionToAddress.put(this.blockPosition, value);
+    blockPositionToAddress.put(this.blockPosition, this.blockAddress);
   }
 
   @Override
@@ -139,13 +83,5 @@ public class LogBlockIndex implements SnapshotSupport {
     final StateSnapshotMetadata snapshotMetadata =
         stateSnapshotController.recoverFromLatestSnapshot();
     lastVirtualPosition = snapshotMetadata.getLastWrittenEventPosition();
-  }
-
-  public synchronized boolean isEmpty() {
-    return blockPositionToAddress.isEmpty();
-  }
-
-  public long getLastPosition() {
-    return lastVirtualPosition;
   }
 }

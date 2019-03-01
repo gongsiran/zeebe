@@ -16,6 +16,7 @@
 package io.zeebe.db.impl.rocksdb;
 
 import io.zeebe.db.ZeebeDbFactory;
+import io.zeebe.db.impl.rocksdb.transaction.ReadOnlyZeebeDbImpl;
 import io.zeebe.db.impl.rocksdb.transaction.ZeebeTransactionDb;
 import java.io.File;
 import java.util.ArrayList;
@@ -53,6 +54,45 @@ public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum<ColumnFamil
         Arrays.stream(columnFamilyTypeClass.getEnumConstants())
             .map(c -> c.name().toLowerCase().getBytes())
             .collect(Collectors.toList()));
+  }
+
+  public ReadOnlyZeebeDbImpl<ColumnFamilyType> createReadOnlyDb(File path) {
+    return openReadOnlyDb(
+        path,
+        Arrays.stream(columnFamilyTypeClass.getEnumConstants())
+            .map(c -> c.name().toLowerCase().getBytes())
+            .collect(Collectors.toList()));
+  }
+
+  private ReadOnlyZeebeDbImpl<ColumnFamilyType> openReadOnlyDb(
+      File dbDirectory, List<byte[]> columnFamilyNames) {
+    final ReadOnlyZeebeDbImpl<ColumnFamilyType> db;
+    try {
+      final List<AutoCloseable> closeables = new ArrayList<>();
+      final ColumnFamilyOptions columnFamilyOptions = createColumnFamilyOptions();
+      closeables.add(columnFamilyOptions);
+
+      final List<ColumnFamilyDescriptor> columnFamilyDescriptors =
+          createFamilyDescriptors(columnFamilyNames, columnFamilyOptions);
+
+      final DBOptions dbOptions =
+          new DBOptions()
+              .setCreateMissingColumnFamilies(true)
+              .setErrorIfExists(false)
+              .setCreateIfMissing(true);
+      closeables.add(dbOptions);
+
+      db =
+          ReadOnlyZeebeDbImpl.openReadOnlyDb(
+              dbOptions,
+              dbDirectory.getAbsolutePath(),
+              columnFamilyDescriptors,
+              closeables,
+              columnFamilyTypeClass);
+    } catch (final RocksDBException e) {
+      throw new RuntimeException("Unexpected error occurred trying to open the database", e);
+    }
+    return db;
   }
 
   protected ZeebeTransactionDb<ColumnFamilyType> open(

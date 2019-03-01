@@ -15,6 +15,7 @@
  */
 package io.zeebe.db;
 
+import io.zeebe.db.impl.rocksdb.transaction.ReadOnlyZeebeDbImpl;
 import java.io.File;
 
 /**
@@ -32,4 +33,7 @@ public interface ZeebeDbFactory<ColumnFamilyNames extends Enum<ColumnFamilyNames
    * @return the created zeebe database
    */
   ZeebeDb<ColumnFamilyNames> createDb(File pathName);
+
+  // TODO: write documentation
+  ReadOnlyZeebeDbImpl<ColumnFamilyNames> createReadOnlyDb(File path);
 }

@@ -49,6 +49,9 @@ public class LogStreamsComponent implements Component {
         new StreamProcessorServiceFactory(serviceContainer, snapshotPeriod);
     serviceContainer
         .createService(STREAM_PROCESSOR_SERVICE_FACTORY, streamProcessorFactory)
+        //        .dependency(
+        //            logBlockIndexServiceName(context.),
+        //            streamProcessorFactory.getLogBlockIndexInjector())
         .install();
 
     final ZbStreamProcessorService streamProcessorService =

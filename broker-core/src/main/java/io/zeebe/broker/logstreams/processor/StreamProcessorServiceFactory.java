@@ -19,6 +19,7 @@ package io.zeebe.broker.logstreams.processor;
 
 import io.zeebe.broker.clustering.base.partitions.Partition;
 import io.zeebe.logstreams.LogStreams;
+import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LoggedEvent;
@@ -28,6 +29,7 @@ import io.zeebe.logstreams.processor.StreamProcessorFactory;
 import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.protocol.Protocol;
 import io.zeebe.protocol.impl.record.RecordMetadata;
+import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceContainer;
 import io.zeebe.servicecontainer.ServiceName;
@@ -43,6 +45,7 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
   private final ServiceContainer serviceContainer;
   private final Duration snapshotPeriod;
   private ActorScheduler actorScheduler;
+  private Injector<LogBlockIndex> logBlockIndexInjector;
 
   public StreamProcessorServiceFactory(ServiceContainer serviceContainer, Duration snapshotPeriod) {
     this.serviceContainer = serviceContainer;
@@ -57,6 +60,10 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
   @Override
   public StreamProcessorServiceFactory get() {
     return this;
+  }
+
+  public Injector<LogBlockIndex> getLogBlockIndexInjector() {
+    return logBlockIndexInjector;
   }
 
   public Builder createService(Partition partition, ServiceName<Partition> serviceName) {

@@ -33,6 +33,8 @@ public class LogBlockIndexTest {
 
   public static final int ADDRESS_MULTIPLIER = 200;
   public static final int ENTRY_OFFSET = 5;
+  final ZeebeDbFactory<LogBlockColumnFamilies> dbFactory =
+      ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class);
 
   private LogBlockIndex blockIndex;
 
@@ -49,9 +51,6 @@ public class LogBlockIndexTest {
   }
 
   private void startBlockIndexDb() throws Exception {
-    final ZeebeDbFactory<LogBlockColumnFamilies> dbFactory =
-        ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class);
-
     final StateStorage stateStorage =
         new StateStorage(runtimeDirectory.getRoot(), snapshotDirectory.getRoot());
 
@@ -222,7 +221,6 @@ public class LogBlockIndexTest {
 
     // when
     blockIndex.closeDb(); // close and reopen DB
-    blockIndex.recoverFromSnapshot();
     startBlockIndexDb();
 
     // then

@@ -19,6 +19,7 @@ import io.zeebe.dispatcher.Dispatcher;
 import io.zeebe.logstreams.impl.LogBlockIndexWriter;
 import io.zeebe.logstreams.impl.LogStorageAppender;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.spi.LogStorage;
 import io.zeebe.util.sched.ActorCondition;
 import io.zeebe.util.sched.future.ActorFuture;
@@ -84,6 +85,13 @@ public interface LogStream extends AutoCloseable {
    * @return the log block index
    */
   LogBlockIndex getLogBlockIndex();
+
+  /**
+   * Returns the ReadOnlyLogBlockIndex object, which is used for reading the LogStorage's index.
+   *
+   * @return the log block index
+   */
+  ReadOnlyLogBlockIndex getReadOnlyLogBlockIndex();
 
   /**
    * Returns the writeBuffer, which is used by the LogStreamController to stream the content into

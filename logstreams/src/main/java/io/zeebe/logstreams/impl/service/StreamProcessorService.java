@@ -15,7 +15,9 @@
  */
 package io.zeebe.logstreams.impl.service;
 
+import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.processor.StreamProcessorController;
+import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceContainer;
 import io.zeebe.servicecontainer.ServiceName;
@@ -27,6 +29,7 @@ public class StreamProcessorService implements Service<StreamProcessorService> {
   private final StreamProcessorController controller;
   private final ServiceContainer serviceContainer;
   private final ServiceName<StreamProcessorService> serviceName;
+  private final Injector<LogBlockIndex> logBlockIndexInjector = new Injector<>();
 
   public StreamProcessorService(
       StreamProcessorController controller,
@@ -39,7 +42,14 @@ public class StreamProcessorService implements Service<StreamProcessorService> {
 
   @Override
   public void start(ServiceStartContext startContext) {
+    //
+    //    final File runtimeDirectory = logBlockIndexInjector.getValue().getRuntimeDirectory();
+    //    controller.setIndexRuntimeDirectory(runtimeDirectory);
     startContext.async(controller.openAsync());
+  }
+
+  public Injector<LogBlockIndex> getLogBlockIndexInjector() {
+    return logBlockIndexInjector;
   }
 
   @Override

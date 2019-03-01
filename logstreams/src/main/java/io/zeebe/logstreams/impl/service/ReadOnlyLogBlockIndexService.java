@@ -20,17 +20,19 @@ import static io.zeebe.logstreams.impl.LogBlockIndexWriter.LOG;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
-import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.state.StateStorage;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.servicecontainer.ServiceStopContext;
 
-public class LogBlockIndexService implements Service<LogBlockIndex> {
-  private LogBlockIndex logBlockIndex;
-  private final StateStorage stateStorage;
+public class ReadOnlyLogBlockIndexService implements Service<ReadOnlyLogBlockIndex> {
 
-  public LogBlockIndexService(StateStorage stateStorage) {
+  private final StateStorage stateStorage;
+  private ReadOnlyLogBlockIndex logBlockIndex;
+
+  public ReadOnlyLogBlockIndexService(StateStorage stateStorage) {
+
     this.stateStorage = stateStorage;
   }
 
@@ -39,25 +41,24 @@ public class LogBlockIndexService implements Service<LogBlockIndex> {
     final ZeebeDbFactory<LogBlockColumnFamilies> dbFactory =
         ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class);
 
-    logBlockIndex = new LogBlockIndex(dbFactory, stateStorage);
+    logBlockIndex = new ReadOnlyLogBlockIndex(dbFactory, stateStorage);
   }
 
   @Override
   public void stop(ServiceStopContext stopContext) {
-    try {
-      logBlockIndex.closeDb();
-    } catch (Exception e) {
-      LOG.error("Couldn't close block index db", e);
+    if (logBlockIndex != null) {
+      try {
+        logBlockIndex.closeDb();
+      } catch (Exception e) {
+        LOG.error("Couldn't close block index db", e);
+      }
     }
+
     logBlockIndex = null;
   }
 
   @Override
-  public LogBlockIndex get() {
+  public ReadOnlyLogBlockIndex get() {
     return logBlockIndex;
   }
-
-  //  public File getBlockIndexRuntimePath() {
-  //    return builder.getBlockIndexDirectory();
-  //  }
 }

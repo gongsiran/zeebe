@@ -20,6 +20,7 @@ import io.zeebe.dispatcher.Subscription;
 import io.zeebe.logstreams.impl.LogBlockIndexWriter;
 import io.zeebe.logstreams.impl.LogStorageAppender;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.spi.LogStorage;
 import io.zeebe.servicecontainer.ServiceName;
@@ -48,6 +49,12 @@ public class LogStreamServiceNames {
   public static final ServiceName<LogBlockIndex> logBlockIndexServiceName(String logName) {
     return ServiceName.newServiceName(
         String.format("logstream.%s.blockIdx", logName), LogBlockIndex.class);
+  }
+
+  public static final ServiceName<ReadOnlyLogBlockIndex> readOnlyLogBlockIndexServiceName(
+      String logName) {
+    return ServiceName.newServiceName(
+        String.format("logstream.%s.blockIdx.read", logName), ReadOnlyLogBlockIndex.class);
   }
 
   public static final ServiceName<LogBlockIndexWriter> logBlockIndexWriterService(String logName) {
