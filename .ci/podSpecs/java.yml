@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    agent: zeebe-ci-build
+spec:
+  nodeSelector:
+    cloud.google.com/gke-nodepool: slaves
+  containers:
+    - name: maven
+      image: camundainternal/zeebe-ci-maven:3.6.0-jdk-8
+      command: ["cat"]
+      # Elasticsearch cannot run as root but the official maven has only root.
+      securityContext:
+        runAsUser: 10000
+      tty: true
+      env:
+        - name: LIMITS_CPU
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: JAVA_TOOL_OPTIONS
+          value: |
+            -XX:+UnlockExperimentalVMOptions
+            -XX:+UseCGroupMemoryLimitForHeap
+      resources:
+        limits:
+          cpu: 8
+          memory: 16Gi
+        requests:
+          cpu: 4
+          memory: 16Gi
+    - name: docker
+      image: docker:18.06-dind
+      args: ["--storage-driver=overlay2"]
+      securityContext:
+        privileged: true
+      tty: true
+      resources:
+        limits:
+          cpu: 1
+          memory: 1Gi
+        requests:
+          cpu: 500m
+          memory: 512Mi

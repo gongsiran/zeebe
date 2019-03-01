@@ -1,140 +1,119 @@
 // vim: set filetype=groovy:
 
-def jdkVersion = 'jdk-8-latest'
-def mavenVersion = 'maven-3.5-latest'
-def mavenSettingsConfig = 'camunda-maven-settings'
 
-def storeNumOfBuilds() {
-  return env.BRANCH_NAME ==~ /(master|develop|stage)/ ? '10' : '3'
-}
-
-def joinJmhResults = '''\
-#!/bin/bash -x
-cat **/*/jmh-result.json | jq -s add > target/jmh-result.json
-'''
-
-def setupGoPath() {
-    return '''\
-#!/bin/bash -eux
-echo "== Go build environment =="
-go version
-echo "GOPATH=${GOPATH}"
-
-PROJECT_ROOT="${GOPATH}/src/github.com/zeebe-io"
-mkdir -p ${PROJECT_ROOT}
-
-PROJECT_DIR="${PROJECT_ROOT}/zeebe"
-ln -fvs ${WORKSPACE} ${PROJECT_DIR}
-'''
-}
-
-def goTests() {
-    return '''\
-#!/bin/bash -eux
-export CGO_ENABLED=0
-
-cd ${GOPATH}/src/github.com/zeebe-io/zeebe/clients/go
-make install-deps test
-
-cd ${GOPATH}/src/github.com/zeebe-io/zeebe/clients/zbctl
-make test
-'''
-}
+def buildName = "${env.JOB_BASE_NAME.replaceAll("%2F", "-").replaceAll("\\.", "-").take(20)}-${env.BUILD_ID}"
 
 pipeline {
-    agent { node { label 'ubuntu-large' } }
+    agent none
+
+    environment {
+      NEXUS = credentials("camunda-nexus")
+    }
 
     options {
-        buildDiscarder(logRotator(daysToKeepStr:'14', numToKeepStr:storeNumOfBuilds()))
+        buildDiscarder(logRotator(daysToKeepStr: '14', numToKeepStr: '10'))
         timestamps()
         timeout(time: 45, unit: 'MINUTES')
     }
 
     stages {
-        stage('Install') {
-            steps {
-                withMaven(jdk: jdkVersion, maven: mavenVersion, mavenSettingsConfig: mavenSettingsConfig) {
-                    sh 'mvn -B clean com.mycila:license-maven-plugin:check com.coveo:fmt-maven-plugin:check install -DskipTests -Dskip-zbctl=false -Pspotbugs'
-                }
-            }
-        }
-
-        stage('Verify') {
-            failFast true
+        stage('Zeebe CI') {
             parallel {
-                stage('1 - Java Tests') {
-                    steps {
-                        withMaven(jdk: jdkVersion, maven: mavenVersion, mavenSettingsConfig: mavenSettingsConfig) {
-                            sh 'mvn -B -T 1C verify -P skip-unstable-ci,retry-tests,parallel-tests'
-                        }
+                stage('1 - Java') {
+                    agent {
+                      kubernetes {
+                        cloud 'zeebe-ci'
+                        label "zeebe-ci-build_java_${buildName}"
+                        defaultContainer 'jnlp'
+                        yamlFile '.ci/podSpecs/java.yml'
+                      }
                     }
-                    post {
-                        failure {
-                            archiveArtifacts artifacts: '**/target/*-reports/**/*-output.txt,**/**/*.dumpstream,**/**/hs_err_*.log', allowEmptyArchive: true
+
+                    stages {
+                        stage('Build') {
+                            steps {
+                                container('maven') {
+                                    sh '.ci/scripts/java.sh'
+                                }
+                            }
+
+                            post {
+                                always {
+                                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
+                                }
+                            }
+                        }
+
+                        stage('Deploy') {
+                            steps {
+                                container('maven') {
+                                    sh 'pwd'
+                                    sh 'ls'
+                                    sh 'echo mvn deploy'
+                                }
+                            }
+                        }
+
+                        stage('Docker') {
+                            steps {
+                                container('docker') {
+                                    sh 'pwd'
+                                    sh 'ls'
+                                    sh 'echo docker build'
+                                }
+                            }
                         }
                     }
                 }
 
-                stage('2 - JMH') {
-                    // delete this line to also run JMH on feature branch
-                    when { anyOf { branch 'master'; branch 'develop' } }
-                    agent { node { label 'ubuntu' } }
+                stage('2 - Go') {
+                    agent {
+                      kubernetes {
+                        cloud 'zeebe-ci'
+                        label "zeebe-ci-build_go_${buildName}"
+                        defaultContainer 'jnlp'
+                        yamlFile '.ci/podSpecs/go.yml'
+                      }
+                    }
 
                     steps {
-                        withMaven(jdk: jdkVersion, maven: mavenVersion, mavenSettingsConfig: mavenSettingsConfig) {
-                            sh 'mvn -B integration-test -DskipTests -P jmh'
+                        container('golang') {
+                            sh '.ci/scripts/go.sh'
+                        }
+                    }
+
+                    post {
+                        always {
+                            junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
+                        }
+                    }
+                }
+
+                stage('3 - JMH') {
+                    when { anyOf { branch 'master'; branch 'develop' } }
+
+                    agent {
+                      kubernetes {
+                        cloud 'zeebe-ci'
+                        label "zeebe-ci-build_jmh_${buildName}"
+                        defaultContainer 'jnlp'
+                        yamlFile '.ci/podSpecs/jmh.yml'
+                      }
+                    }
+
+                    steps {
+                        container('maven') {
+                            sh '.ci/scripts/jmh.sh'
                         }
                     }
 
                     post {
                         success {
-                            sh joinJmhResults
                             jmhReport 'target/jmh-result.json'
                         }
                     }
                 }
-
-                stage('3 - Go Tests') {
-                    agent { node { label 'ubuntu' } }
-
-                    steps {
-                        sh setupGoPath()
-                        sh goTests()
-                    }
-                }
             }
-        }
-
-        stage('Deploy') {
-            when { branch 'develop' }
-            steps {
-                withMaven(jdk: jdkVersion, maven: mavenVersion, mavenSettingsConfig: mavenSettingsConfig) {
-                    sh 'mvn -B -T 1C generate-sources source:jar javadoc:jar deploy -DskipTests'
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            when { branch 'develop' }
-            steps {
-                build job: 'zeebe-DISTRO-docker', parameters: [
-                    string(name: 'RELEASE_VERSION', value: "SNAPSHOT"),
-                    booleanParam(name: 'IS_LATEST', value: false)
-                ]
-            }
-        }
-
-        stage('Trigger Performance Tests') {
-            when { branch 'develop' }
-            steps {
-                build job: 'zeebe-cluster-performance-tests', wait: false
-            }
-        }
-    }
-
-    post {
-        changed {
-            sendBuildStatusNotificationToDevelopers(currentBuild.result)
         }
     }
 }
