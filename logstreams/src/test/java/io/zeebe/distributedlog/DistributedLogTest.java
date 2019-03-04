@@ -57,7 +57,7 @@ public class DistributedLogTest {
       new DistributedLogRule(
           serviceContainerRule3, 3, 1, 3, members, Collections.singletonList(node2.getNode()));
 
-  public Timeout timeoutRule = Timeout.seconds(120);
+  public Timeout timeoutRule = Timeout.seconds(60);
 
   public static final int DEFAULT_RETRIES = 500;
 

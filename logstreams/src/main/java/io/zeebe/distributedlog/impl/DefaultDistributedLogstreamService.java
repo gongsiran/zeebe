@@ -39,6 +39,7 @@ public class DefaultDistributedLogstreamService
 
   public DefaultDistributedLogstreamService(DistributedLogstreamServiceConfig config) {
     super(DistributedLogstreamType.instance(), DistributedLogstreamClient.class);
+    LOG.info("Starting dislogservice with config memberid{}", config.getMember());
   }
 
   @Override

@@ -15,7 +15,22 @@
  */
 package io.zeebe.distributedlog.impl;
 
+import io.atomix.cluster.MemberId;
 import io.atomix.primitive.service.ServiceConfig;
 
 /* Define any configuration parameters needed for the DefaultDistributedLogstreamService */
-public class DistributedLogstreamServiceConfig extends ServiceConfig {}
+public class DistributedLogstreamServiceConfig extends ServiceConfig {
+  private MemberId member;
+
+  public DistributedLogstreamServiceConfig(MemberId member) {
+    this.member = member;
+  }
+
+  public MemberId getMember() {
+    return member;
+  }
+
+  public void setMember(MemberId member) {
+    this.member = member;
+  }
+}
