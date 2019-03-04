@@ -105,6 +105,7 @@ public class PartitionInstallService implements Service<Void> {
         .createService(distributedLogPartitionServiceName(logName), distributedLogstreamPartition)
         .dependency(ATOMIX_SERVICE, distributedLogstreamPartition.getAtomixInjector())
         .dependency(ATOMIX_JOIN_SERVICE)
+        .dependency(logStreamServiceName, distributedLogstreamPartition.getLogStreamInjector())
         .install();
 
     final PartitionLeaderElection leaderElection = new PartitionLeaderElection(partitionId);

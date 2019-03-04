@@ -19,6 +19,7 @@ import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.distributed
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageAppenderRootService;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageAppenderServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageCommitListenerServiceName;
+import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamServiceName;
 import static io.zeebe.util.buffer.BufferUtil.bufferAsString;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
 
@@ -76,6 +77,7 @@ public class DistributedLogPartitionRule {
     serviceContainer
         .createService(distributedLogPartitionServiceName(logName), log)
         .dependency(DistributedLogRule.ATOMIX_SERVICE_NAME, log.getAtomixInjector())
+        .dependency(logStreamServiceName(logName), log.getLogStreamInjector())
         .install();
 
     final ActorFuture<LogStream> logStreamFuture =

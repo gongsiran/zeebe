@@ -16,11 +16,16 @@
 package io.zeebe.distributedlog.impl;
 
 import io.atomix.core.Atomix;
+import io.atomix.primitive.partition.PartitionId;
 import io.atomix.protocols.raft.MultiRaftProtocol;
+import io.atomix.protocols.raft.partition.RaftPartition;
+import io.atomix.protocols.raft.partition.RaftPartitionGroup;
+import io.atomix.protocols.raft.partition.RaftPartitionGroup.Type;
 import io.zeebe.distributedlog.DistributedLogstream;
 import io.zeebe.distributedlog.DistributedLogstreamBuilder;
 import io.zeebe.distributedlog.DistributedLogstreamType;
 import io.zeebe.distributedlog.LogEventListener;
+import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
@@ -33,10 +38,13 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
 
   private DistributedLogstream distributedLog;
 
+  private final int partitionId;
   private final String partitionName;
   private final String primitiveName;
   private Atomix atomix;
   private final Injector<Atomix> atomixInjector = new Injector<>();
+  private LogStream logStream;
+  private final Injector<LogStream> logStreamInjector = new Injector<>();
 
   private static final MultiRaftProtocol PROTOCOL =
       MultiRaftProtocol.builder()
@@ -45,6 +53,7 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
           .build();
 
   public DistributedLogstreamPartition(int partitionId) {
+    this.partitionId = partitionId;
     primitiveName = String.format("log-partition-%d", partitionId);
     partitionName = DistributedLogstreamName.getPartitionKey(partitionId);
   }
@@ -64,6 +73,24 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
   @Override
   public void start(ServiceStartContext startContext) {
     this.atomix = atomixInjector.getValue();
+    this.logStream = logStreamInjector.getValue();
+
+    Type type;
+    RaftPartition partition =
+        (RaftPartition)
+            atomix
+                .getPartitionService()
+                .getPartitionGroup("raft-atomix")
+                .getPartition(PartitionId.from("raft-atomix", partitionId));
+    String name = partition.name();
+
+    String localNodeId = atomix.getMembershipService().getLocalMember().id().id();
+    LOG.info(
+        "Setting logstream {} {} logstream partitionid {}",
+        localNodeId,
+        name,
+        logStream.getPartitionId());
+    LogstreamConfig.setLogStream(localNodeId, name, logStream);
 
     distributedLog =
         atomix
@@ -80,5 +107,9 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
 
   public Injector<Atomix> getAtomixInjector() {
     return atomixInjector;
+  }
+
+  public Injector<LogStream> getLogStreamInjector() {
+    return this.logStreamInjector;
   }
 }

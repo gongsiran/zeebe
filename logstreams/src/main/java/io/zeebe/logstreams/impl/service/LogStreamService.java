@@ -304,6 +304,11 @@ public class LogStreamService implements LogStream, Service<LogStream> {
   }
 
   @Override
+  public void signalOnAppendCondition(){
+    onLogStorageAppendedConditions.signalConsumers();
+  }
+
+  @Override
   public int getTerm() {
     return term;
   }
