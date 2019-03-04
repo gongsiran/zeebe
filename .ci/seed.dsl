@@ -1,41 +1,92 @@
 // vim: set filetype=groovy:
 
-multibranchPipelineJob('zeebe') {
+def dslScriptsToExecute = '''\
+.ci/jobs/*.dsl
+.ci/views/*.dsl
+'''
 
-  displayName 'Camunda Zeebe'
-  description 'MultiBranchJob for Camunda Zeebe'
+def dslScriptPathToMonitor = '''\
+.ci/jobs/.*\\.dsl
+.ci/pipelines/.*\\.groovy
+.ci/views/.*\\.dsl
+'''
 
-  branchSources {
-    github {
-      repoOwner 'zeebe-io'
-      repository 'zeebe'
+def setBrokenViewAsDefault = '''\
+import jenkins.model.Jenkins
 
-      includes 'cloud-ci'
-      excludes '.*.tmp'
+def jenkins = Jenkins.instance
+def broken = jenkins.getView('Broken')
+if (broken) {
+  jenkins.setPrimaryView(broken)
+}
+'''
 
-      scanCredentialsId 'camunda-jenkins-github'
-      checkoutCredentialsId 'camunda-jenkins-github-ssh'
+def seedJob = job('seed-job-zeebe') {
 
-      buildForkPRHead true
-      buildForkPRMerge false
+  displayName 'Seed Job Zeebe'
+  description 'JobDSL Seed Job for Zeebe'
 
-      buildOriginPRHead true
-      buildOriginPRMerge false
-    }
-  }
-
-  orphanedItemStrategy {
-    discardOldItems {
-      numToKeep 20
-    }
-    defaultOrphanedItemStrategy {
-      pruneDeadBranches true
-      daysToKeepStr '1'
-      numToKeepStr '20'
+  scm {
+    git {
+      remote {
+        github 'zeebe-io/zeebe', 'ssh'
+        credentials 'camunda-jenkins-github-ssh'
+      }
+      branch 'cloud-ci'
+      extensions {
+        localBranch 'master'
+        pathRestriction {
+          includedRegions(dslScriptPathToMonitor)
+          excludedRegions('')
+        }
+      }
     }
   }
 
   triggers {
-    periodic(1440) // Minutes - Re-index once a day, if not triggered before
+    githubPush()
   }
+
+  label 'master'
+  jdk '(Default)'
+
+  steps {
+    jobDsl {
+      targets(dslScriptsToExecute)
+      removedJobAction('DELETE')
+      removedViewAction('DELETE')
+      failOnMissingPlugin(true)
+      ignoreMissingFiles(false)
+      unstableOnDeprecation(true)
+      sandbox(true)
+    }
+    systemGroovyCommand(setBrokenViewAsDefault){
+      sandbox(true)
+    }
+  }
+
+  wrappers {
+    timestamps()
+    timeout {
+      absolute 5
+    }
+  }
+
+  publishers {
+    extendedEmail {
+      triggers {
+        statusChanged {
+          sendTo {
+            culprits()
+            requester()
+          }
+        }
+      }
+    }
+  }
+
+  logRotator(-1, 5, -1, 1)
+
 }
+
+queue(seedJob)

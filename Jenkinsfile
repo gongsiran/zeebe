@@ -4,7 +4,14 @@
 def buildName = "${env.JOB_BASE_NAME.replaceAll("%2F", "-").replaceAll("\\.", "-").take(20)}-${env.BUILD_ID}"
 
 pipeline {
-    agent none
+    agent {
+      kubernetes {
+        cloud 'zeebe-ci'
+        label "zeebe-ci-build_distribution_${buildName}"
+        defaultContainer 'jnlp'
+        yamlFile '.ci/podSpecs/distribution.yml'
+      }
+    }
 
     environment {
       NEXUS = credentials("camunda-nexus")
@@ -17,100 +24,70 @@ pipeline {
     }
 
     stages {
-        stage('Zeebe CI') {
+        stage('Go Build') {
+            steps {
+                container('golang') {
+                    sh '.ci/scripts/go.sh'
+                }
+            }
+
+            post {
+                always {
+                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
+                }
+            }
+        }
+
+        stage('Java Build') {
+            steps {
+                container('maven') {
+                    sh '.ci/scripts/java.sh'
+                }
+            }
+
+            post {
+                always {
+                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when { branch 'cloud-ci' }
+            steps {
+                container('maven') {
+                    sh '.ci/scripts/deploy.sh'
+                }
+            }
+        }
+
+
+        stage('Post') {
             parallel {
-                stage('1 - Java') {
-                    agent {
-                      kubernetes {
-                        cloud 'zeebe-ci'
-                        label "zeebe-ci-build_java_${buildName}"
-                        defaultContainer 'jnlp'
-                        yamlFile '.ci/podSpecs/java.yml'
-                      }
-                    }
+                stage('Docker') {
 
-                    stages {
-                        stage('Build') {
-                            steps {
-                                container('maven') {
-                                    sh '.ci/scripts/java.sh'
-                                }
-                            }
+                    when { branch 'cloud-ci' }
 
-                            post {
-                                always {
-                                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
-                                }
-                            }
-                        }
-
-                        stage('Deploy') {
-                            steps {
-                                container('maven') {
-                                    sh 'pwd'
-                                    sh 'ls'
-                                    sh 'echo mvn deploy'
-                                }
-                            }
-                        }
-
-                        stage('Docker') {
-                            steps {
-                                container('docker') {
-                                    sh 'pwd'
-                                    sh 'ls'
-                                    sh 'echo docker build'
-                                }
-                            }
-                        }
-                    }
-                }
-
-                stage('2 - Go') {
-                    agent {
-                      kubernetes {
-                        cloud 'zeebe-ci'
-                        label "zeebe-ci-build_go_${buildName}"
-                        defaultContainer 'jnlp'
-                        yamlFile '.ci/podSpecs/go.yml'
-                      }
+                    environment {
+                        VERSION = readMavenPom(file: 'parent/pom.xml').getVersion()
                     }
 
                     steps {
-                        container('golang') {
-                            sh '.ci/scripts/go.sh'
-                        }
-                    }
-
-                    post {
-                        always {
-                            junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
-                        }
+                        build job: 'zeebe-docker', parameters: [
+                            string(name: 'BRANCH', value: env.BRANCH_NAME),
+                            string(name: 'VERSION', value: env.VERSION),
+                            booleanParam(name: 'IS_LATEST', value: env.BRANCH_NAME == 'master')
+                        ]
                     }
                 }
 
-                stage('3 - JMH') {
-                    when { anyOf { branch 'master'; branch 'develop' } }
-
-                    agent {
-                      kubernetes {
-                        cloud 'zeebe-ci'
-                        label "zeebe-ci-build_jmh_${buildName}"
-                        defaultContainer 'jnlp'
-                        yamlFile '.ci/podSpecs/jmh.yml'
-                      }
-                    }
-
+                stage('Docs') {
+                    when { branch 'cloud-ci' }
                     steps {
-                        container('maven') {
-                            sh '.ci/scripts/jmh.sh'
-                        }
-                    }
-
-                    post {
-                        success {
-                            jmhReport 'target/jmh-result.json'
-                        }
+                        build job: 'zeebe-docs', parameters: [
+                            string(name: 'BRANCH', value: env.BRANCH_NAME),
+                            booleanParam(name: 'LIVE', value: env.BRANCH_NAME == 'master')
+                        ]
                     }
                 }
             }

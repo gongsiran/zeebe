@@ -29,10 +29,21 @@ spec:
           cpu: 8
           memory: 16Gi
         requests:
-          cpu: 4
+          cpu: 8
           memory: 16Gi
+    - name: golang
+      image: golang:1.12.0
+      command: ["cat"]
+      tty: true
+      resources:
+        limits:
+          cpu: 3
+          memory: 1Gi
+        requests:
+          cpu: 3
+          memory: 1Gi
     - name: docker
-      image: docker:18.06-dind
+      image: docker:dind
       args: ["--storage-driver=overlay2"]
       securityContext:
         privileged: true
@@ -40,7 +51,7 @@ spec:
       resources:
         limits:
           cpu: 1
-          memory: 1Gi
+          memory: 512Mi
         requests:
-          cpu: 500m
+          cpu: 1
           memory: 512Mi

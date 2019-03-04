@@ -16,3 +16,5 @@ make test 2>&1 | go-junit-report > TEST-go.xml
 
 cd ${ORG_DIR}/zeebe/clients/zbctl
 make test 2>&1 | go-junit-report > TEST-zbctl.xml
+
+./build.sh

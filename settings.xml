@@ -8,6 +8,11 @@
       <username>${env.NEXUS_USR}</username>
       <password>${env.NEXUS_PSW}</password>
     </server>
+    <server>
+      <id>central</id>
+      <username>${env.MAVEN_CENTRAL_USR}</username>
+      <password>${env.MAVEN_CENTRAL_PSW}</password>
+    </server>
   </servers>
   <mirrors>
     <mirror>
