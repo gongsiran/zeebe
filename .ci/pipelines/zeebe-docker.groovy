@@ -85,7 +85,7 @@ mvn dependency:copy -B \
 #!/bin/sh -xe
 
 if [ "${VERSION##*-}" = "SNAPSHOT" ]; then
-    TAG=SNAPSHOT
+    TAG=test
 else
     TAG=${VERSION}
 fi
