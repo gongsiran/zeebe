@@ -65,7 +65,7 @@ pipelineJob('zeebe-RELEASE-pipeline')
 
 pipelineJob('zeebe-docs')
 {
-    displayName 'Zeebe Documentation'
+    displayName 'docs.zeebe.io Documentation'
     definition {
         cps {
             script(readFileFromWorkspace('.ci/pipelines/zeebe-docs.groovy'))
@@ -77,6 +77,23 @@ pipelineJob('zeebe-docs')
     {
         stringParam('BRANCH', 'develop', 'zeebe-io/zeebe branch to build and push')
         booleanParam('LIVE', false, 'Should the docs be pushed to https://docs.zeebe.io')
+    }
+}
+
+pipelineJob('zeebe-website')
+{
+    displayName 'zeebe.io Website'
+    definition {
+        cps {
+            script(readFileFromWorkspace('.ci/pipelines/zeebe-website.groovy'))
+            sandbox()
+        }
+    }
+
+    parameters
+    {
+        stringParam('BRANCH', 'master', 'zeebe-io/zeebe.io branch to build and push')
+        booleanParam('LIVE', false, 'Should the page be pushed to https://zeebe.io')
     }
 }
 
