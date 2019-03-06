@@ -66,7 +66,7 @@ else
 fi
 
 # build docs
-./hugo -b ${BASE}
+./hugo -b \${BASE}
 
 # upload
 rsync -azv --delete-after "public/" jenkins_docs_zeebe_io@vm29.camunda.com:"/var/www/camunda/\${FOLDER}/" -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
