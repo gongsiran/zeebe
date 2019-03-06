@@ -65,7 +65,7 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
   private final Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap;
   private final List<AutoCloseable> closeables;
   private final Class<ColumnFamilyNames> columnFamilyTypeClass;
-  private final ReadOptions readOptions = new ReadOptions(); // TODO: check readOptions
+  private final ReadOptions readOptions = new ReadOptions();
   private StringBuilder keyMayExistStringBuilder = new StringBuilder();
 
   // key/value buffers/views
@@ -75,11 +75,6 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
   protected final DirectBuffer keyViewBuffer = new UnsafeBuffer(0, 0);
   protected final DirectBuffer valueViewBuffer = new UnsafeBuffer(0, 0);
   private MutableDirectBuffer prefixKeyBuffer;
-
-  // TODO check
-  // buffers used inside the batch
-  private final ExpandableArrayBuffer keyBatchBuffer = new ExpandableArrayBuffer();
-  private final ExpandableArrayBuffer valueBatchBuffer = new ExpandableArrayBuffer();
 
   private boolean activePrefixIteration;
 
@@ -98,7 +93,7 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
         RocksDB.openReadOnly(options, path, columnFamilyDescriptors, handles);
 
     final ColumnFamilyNames[] enumConstants = columnFamilyTypeClass.getEnumConstants();
-    final Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap = new Long2ObjectHashMap();
+    final Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap = new Long2ObjectHashMap<>();
     for (int i = 0; i < handles.size(); i++) {
       columnFamilyMap.put(enumConstants[i], getNativeHandle(handles.get(i)));
       handleToEnumMap.put(getNativeHandle(handles.get(i)), handles.get(i));

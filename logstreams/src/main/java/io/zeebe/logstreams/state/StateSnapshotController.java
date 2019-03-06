@@ -42,7 +42,7 @@ public class StateSnapshotController implements SnapshotController {
   @Override
   public void takeSnapshot(final StateSnapshotMetadata metadata) {
     if (db == null) {
-      throw new IllegalStateException("Cannot create snapshot of not open database.");
+      throw new IllegalStateException("Cannot create snapshot of unopened database.");
     }
 
     if (exists(metadata)) {

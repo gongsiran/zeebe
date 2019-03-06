@@ -19,7 +19,7 @@ import static io.zeebe.raft.AppendRequestEncoder.previousEventPositionNullValue;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventTermNullValue;
 
 import io.zeebe.logstreams.impl.LoggedEventImpl;
-import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LoggedEvent;
@@ -250,7 +250,7 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
       if (previousEvent != null) {
         setPreviousEvent(previousEvent);
       } else {
-        final LogBlockIndex logBlockIndex = logStream.getLogBlockIndex();
+        final ReadOnlyLogBlockIndex logBlockIndex = logStream.getReadOnlyLogBlockIndex();
         final long blockPosition = logBlockIndex.lookupBlockPosition(eventPosition);
 
         if (blockPosition > 0) {

@@ -99,6 +99,7 @@ public class BufferedLogStreamReader implements LogStreamReader {
       final LogStorage logStorage, final ReadOnlyLogBlockIndex logBlockIndex, final long position) {
     this.logStorage = logStorage;
     this.logBlockIndex = logBlockIndex;
+    this.logBlockIndex.openDb();
 
     if (isClosed()) {
       allocateBuffer(DEFAULT_INITIAL_BUFFER_CAPACITY);
