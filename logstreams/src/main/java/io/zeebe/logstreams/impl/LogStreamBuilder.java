@@ -248,7 +248,7 @@ public class LogStreamBuilder {
     installOperation.createService(logBlockIndexServiceName, logBlockIndexService).install();
 
     final ReadOnlyLogBlockIndexService readOnlyLogBlockIndexService =
-        new ReadOnlyLogBlockIndexService(stateStorage);
+        new ReadOnlyLogBlockIndexService(stateStorage.getRuntimeDirectory());
     installOperation
         .createService(readOnlyLogBlockIndexServiceName, readOnlyLogBlockIndexService)
         .install();

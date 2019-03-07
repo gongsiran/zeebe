@@ -56,8 +56,4 @@ public class LogBlockIndexService implements Service<LogBlockIndex> {
   public LogBlockIndex get() {
     return logBlockIndex;
   }
-
-  //  public File getBlockIndexRuntimePath() {
-  //    return builder.getBlockIndexDirectory();
-  //  }
 }

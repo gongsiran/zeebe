@@ -19,6 +19,7 @@ import io.zeebe.dispatcher.Dispatcher;
 import io.zeebe.dispatcher.DispatcherBuilder;
 import io.zeebe.dispatcher.impl.PositionUtil;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
+import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.LoggedEvent;
 import io.zeebe.logstreams.spi.LogStorage;
@@ -30,6 +31,7 @@ import io.zeebe.servicecontainer.ServiceStopContext;
 public class LogWriteBufferService implements Service<Dispatcher> {
   private final Injector<LogStorage> logStorageInjector = new Injector<>();
   private final Injector<LogBlockIndex> logBlockIndexInjector = new Injector<>();
+  private final Injector<ReadOnlyLogBlockIndex> readOnlyLogBlockIndexInjector = new Injector<>();
 
   protected DispatcherBuilder dispatcherBuilder;
   protected Dispatcher dispatcher;
@@ -60,10 +62,10 @@ public class LogWriteBufferService implements Service<Dispatcher> {
 
   private int determineInitialPartitionId() {
     final LogStorage logStorage = logStorageInjector.getValue();
-    final LogBlockIndex logBlockIndex = logBlockIndexInjector.getValue();
+    final ReadOnlyLogBlockIndex readOnlyLogBlockIndex = readOnlyLogBlockIndexInjector.getValue();
 
-    try (BufferedLogStreamReader logReader = new BufferedLogStreamReader(true)) {
-      logReader.wrap(logStorage, logBlockIndex);
+    try (final BufferedLogStreamReader logReader = new BufferedLogStreamReader(true)) {
+      logReader.wrap(logStorage, readOnlyLogBlockIndex);
 
       long lastPosition = 0;
 
@@ -92,6 +94,10 @@ public class LogWriteBufferService implements Service<Dispatcher> {
 
   public Injector<LogBlockIndex> getLogBlockIndexInjector() {
     return logBlockIndexInjector;
+  }
+
+  public Injector<ReadOnlyLogBlockIndex> getReadOnlyLogBlockIndexInjector() {
+    return readOnlyLogBlockIndexInjector;
   }
 
   public Injector<LogStorage> getLogStorageInjector() {

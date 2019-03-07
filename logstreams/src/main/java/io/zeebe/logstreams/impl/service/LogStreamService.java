@@ -52,7 +52,7 @@ public class LogStreamService implements LogStream, Service<LogStream> {
 
   private final Injector<LogStorage> logStorageInjector = new Injector<>();
   private final Injector<LogBlockIndex> logBlockIndexInjector = new Injector<>();
-  private Injector<ReadOnlyLogBlockIndex> readOnlyLogBlockIndexInjector = new Injector<>();
+  private final Injector<ReadOnlyLogBlockIndex> readOnlyLogBlockIndexInjector = new Injector<>();
   private final Injector<LogBlockIndexWriter> logBockIndexWriterInjector = new Injector<>();
 
   private final ServiceContainer serviceContainer;
@@ -98,6 +98,7 @@ public class LogStreamService implements LogStream, Service<LogStream> {
     serviceContext = startContext;
     logStorage = logStorageInjector.getValue();
     logBlockIndex = logBlockIndexInjector.getValue();
+    readOnlyLogBlockIndex = readOnlyLogBlockIndexInjector.getValue();
     logBlockIndexWriter = logBockIndexWriterInjector.getValue();
   }
 
@@ -126,6 +127,9 @@ public class LogStreamService implements LogStream, Service<LogStream> {
             .dependency(
                 logBlockIndexInjector.getInjectedServiceName(),
                 writeBufferService.getLogBlockIndexInjector())
+            .dependency(
+                readOnlyLogBlockIndexInjector.getInjectedServiceName(),
+                writeBufferService.getReadOnlyLogBlockIndexInjector())
             .install();
 
     final LogWriteBufferSubscriptionService subscriptionService =
@@ -202,7 +206,7 @@ public class LogStreamService implements LogStream, Service<LogStream> {
 
   @Override
   public ReadOnlyLogBlockIndex getReadOnlyLogBlockIndex() {
-    return logBlockIndex;
+    return readOnlyLogBlockIndex;
   }
 
   @Override

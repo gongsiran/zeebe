@@ -38,7 +38,6 @@ public class LogBlockIndex extends ReadOnlyLogBlockIndex implements SnapshotSupp
 
   public LogBlockIndex(
       ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, StateStorage stateStorage) {
-    super(dbFactory, stateStorage);
     this.stateSnapshotController = new StateSnapshotController(dbFactory, stateStorage);
   }
 

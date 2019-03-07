@@ -21,19 +21,18 @@ import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.ReadOnlyLogBlockIndex;
-import io.zeebe.logstreams.state.StateStorage;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.servicecontainer.ServiceStopContext;
+import java.io.File;
 
 public class ReadOnlyLogBlockIndexService implements Service<ReadOnlyLogBlockIndex> {
 
-  private final StateStorage stateStorage;
+  private final File runtimeDirectory;
   private ReadOnlyLogBlockIndex logBlockIndex;
 
-  public ReadOnlyLogBlockIndexService(StateStorage stateStorage) {
-
-    this.stateStorage = stateStorage;
+  public ReadOnlyLogBlockIndexService(File runtimeDirectory) {
+    this.runtimeDirectory = runtimeDirectory;
   }
 
   @Override
@@ -41,7 +40,7 @@ public class ReadOnlyLogBlockIndexService implements Service<ReadOnlyLogBlockInd
     final ZeebeDbFactory<LogBlockColumnFamilies> dbFactory =
         ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class);
 
-    logBlockIndex = new ReadOnlyLogBlockIndex(dbFactory, stateStorage);
+    logBlockIndex = new ReadOnlyLogBlockIndex(dbFactory, runtimeDirectory);
   }
 
   @Override

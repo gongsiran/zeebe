@@ -167,7 +167,7 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
 
       if (readBytes >= valueLength) {
         valueBuffer.checkLimit(readBytes);
-        return getValue(columnFamilyHandle, keyLength);
+        return getValue(columnFamilyHandle, keyLength);   // TODO: check
       } else if (readBytes <= RocksDB.NOT_FOUND) {
         return null;
       } else {

@@ -19,7 +19,6 @@ import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.DbLong;
-import io.zeebe.logstreams.state.StateStorage;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -48,10 +47,15 @@ public class ReadOnlyLogBlockIndex {
 
   protected long lastVirtualPosition = -1;
 
+  public ReadOnlyLogBlockIndex() {
+    this.dbFactory = null;
+    runtimeDirectory = null;
+  }
+
   public ReadOnlyLogBlockIndex(
-      ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, StateStorage stateStorage) {
+      ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, File runtimeDirectory) {
     this.dbFactory = dbFactory;
-    this.runtimeDirectory = stateStorage.getRuntimeDirectory();
+    this.runtimeDirectory = runtimeDirectory;
   }
 
   public void openDb() {
