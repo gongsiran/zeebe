@@ -38,6 +38,7 @@ import io.zeebe.util.sched.ActorCondition;
 import io.zeebe.util.sched.ActorPriority;
 import io.zeebe.util.sched.clock.ActorClock;
 import java.time.Duration;
+import org.agrona.ExpandableArrayBuffer;
 import org.slf4j.Logger;
 
 /** Per-follower replication controller */
@@ -73,6 +74,8 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
   private RaftMember member;
 
   private volatile boolean isClosing = false;
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
 
   public MemberReplicateLogController(
       Raft raft, RaftMember member, ClientTransport clientTransport) {
@@ -251,7 +254,8 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
         setPreviousEvent(previousEvent);
       } else {
         final ReadOnlyLogBlockIndex logBlockIndex = logStream.getReadOnlyLogBlockIndex();
-        final long blockPosition = logBlockIndex.lookupBlockPosition(eventPosition);
+        final long blockPosition =
+            logBlockIndex.lookupBlockPosition(eventPosition, keyBuffer, valueBuffer);
 
         if (blockPosition > 0) {
           reader.seek(blockPosition);

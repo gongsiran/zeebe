@@ -22,6 +22,7 @@ import io.zeebe.db.KeyValuePairVisitor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 
 class TransactionalColumnFamily<
         ColumnFamilyNames extends Enum<ColumnFamilyNames>,
@@ -62,6 +63,13 @@ class TransactionalColumnFamily<
   }
 
   @Override
+  public ValueType get(
+      KeyType key, ExpandableArrayBuffer keyBuffer, ExpandableArrayBuffer writeBuffer) {
+    throw new UnsupportedOperationException(
+        "TransactionalColumnFamily doesn't support passing key/value buffers");
+  }
+
+  @Override
   public void forEach(Consumer consumer) {
     transactionDb.foreach(handle, valueInstance, consumer);
   }
@@ -74,6 +82,15 @@ class TransactionalColumnFamily<
   @Override
   public void whileTrue(KeyValuePairVisitor visitor) {
     transactionDb.whileTrue(handle, keyInstance, valueInstance, visitor);
+  }
+
+  @Override
+  public void whileTrue(
+      KeyValuePairVisitor visitor,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    throw new UnsupportedOperationException(
+        "TransactionalColumnFamily doesn't support passing key/value buffers");
   }
 
   @Override

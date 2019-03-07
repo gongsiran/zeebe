@@ -27,6 +27,7 @@ import io.zeebe.util.allocation.DirectBufferAllocator;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public class BufferedLogStreamReader implements LogStreamReader {
@@ -46,6 +47,10 @@ public class BufferedLogStreamReader implements LogStreamReader {
   private LogStream logStream;
   private LogStorage logStorage;
   private ReadOnlyLogBlockIndex logBlockIndex;
+
+  // buffers for read-only block index
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
 
   // state
   private IteratorState state;
@@ -99,7 +104,6 @@ public class BufferedLogStreamReader implements LogStreamReader {
       final LogStorage logStorage, final ReadOnlyLogBlockIndex logBlockIndex, final long position) {
     this.logStorage = logStorage;
     this.logBlockIndex = logBlockIndex;
-    this.logBlockIndex.openDb();
 
     if (isClosed()) {
       allocateBuffer(DEFAULT_INITIAL_BUFFER_CAPACITY);
@@ -333,7 +337,7 @@ public class BufferedLogStreamReader implements LogStreamReader {
   }
 
   private long lookUpBlockAddressForPosition(final long position) {
-    long address = logBlockIndex.lookupBlockAddress(position);
+    long address = logBlockIndex.lookupBlockAddress(position, keyBuffer, valueBuffer);
     if (address < 0) {
       // position not found in index fallback to first block
       address = logStorage.getFirstBlockAddress();

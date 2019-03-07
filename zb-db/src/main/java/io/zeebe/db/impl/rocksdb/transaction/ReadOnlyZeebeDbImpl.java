@@ -145,13 +145,22 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
   //////////////////////////// GET ///////////////////////////////////
   ////////////////////////////////////////////////////////////////////
 
-  protected DirectBuffer get(long columnFamilyHandle, DbKey key) {
+  protected DirectBuffer get(
+      long columnFamilyHandle,
+      DbKey key,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
     key.write(keyBuffer, 0);
     final int keyLength = key.getLength();
-    return getValue(columnFamilyHandle, keyLength);
+    return getValue(columnFamilyHandle, keyLength, keyBuffer, valueBuffer);
   }
 
-  private DirectBuffer getValue(long columnFamilyHandle, int keyLength) {
+  private DirectBuffer getValue(
+      long columnFamilyHandle,
+      int keyLength,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+
     final int valueLength = valueBuffer.capacity();
     try {
       final int readBytes =
@@ -167,12 +176,12 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
 
       if (readBytes >= valueLength) {
         valueBuffer.checkLimit(readBytes);
-        return getValue(columnFamilyHandle, keyLength);   // TODO: check
+        return getValue(columnFamilyHandle, keyLength, keyBuffer, valueBuffer); // TODO: check
       } else if (readBytes <= RocksDB.NOT_FOUND) {
         return null;
       } else {
-        valueViewBuffer.wrap(valueBuffer, 0, readBytes);
-        return valueViewBuffer;
+        // valueViewBuffer.wrap(this.valueBuffer, 0, readBytes);
+        return valueBuffer;
       }
     } catch (RocksDBException e) {
       throw new RuntimeException("Unexpected error trying to read RocksDB entry", e);
@@ -264,12 +273,15 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
       long columnFamilyHandle,
       KeyType keyInstance,
       ValueType valueInstance,
-      KeyValuePairVisitor<KeyType, ValueType> visitor) {
+      KeyValuePairVisitor<KeyType, ValueType> visitor,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
 
     try (final RocksDbIterator iterator = newIterator(columnFamilyHandle)) {
       boolean shouldVisitNext = true;
       for (iterator.seekToFirst(); iterator.isValid() && shouldVisitNext; iterator.next()) {
-        shouldVisitNext = visit(keyInstance, valueInstance, visitor, iterator);
+        shouldVisitNext =
+            visit(keyInstance, valueInstance, visitor, iterator, keyBuffer, valueBuffer);
       }
     }
   }
@@ -325,7 +337,8 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
         final byte[] keyBytes = iterator.key();
         if (startsWith(
             prefixKeyBuffer.byteArray(), 0, prefix.getLength(), keyBytes, 0, keyBytes.length)) {
-          shouldVisitNext = visit(keyInstance, valueInstance, visitor, iterator);
+          shouldVisitNext =
+              visit(keyInstance, valueInstance, visitor, iterator, keyBuffer, valueBuffer);
         }
       }
     } finally {
@@ -337,12 +350,14 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
       KeyType keyInstance,
       ValueType valueInstance,
       KeyValuePairVisitor<KeyType, ValueType> iteratorConsumer,
-      RocksDbIterator iterator) {
-    keyViewBuffer.wrap(iterator.key());
-    valueViewBuffer.wrap(iterator.value());
+      RocksDbIterator iterator,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    keyBuffer.wrap(iterator.key()); // TODO: ExpandableArrayBuffers can't wrap other buffers
+    valueBuffer.wrap(iterator.value());
 
-    keyInstance.wrap(keyViewBuffer, 0, keyViewBuffer.capacity());
-    valueInstance.wrap(valueViewBuffer, 0, valueViewBuffer.capacity());
+    keyInstance.wrap(keyBuffer, 0, keyBuffer.capacity());
+    valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity());
 
     return iteratorConsumer.visit(keyInstance, valueInstance);
   }
@@ -367,7 +382,7 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
           }
         });
 
-    super.close();
+    //    super.close();
   }
 
   @Override

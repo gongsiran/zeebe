@@ -247,18 +247,19 @@ public class LogStreamBuilder {
     final LogBlockIndexService logBlockIndexService = new LogBlockIndexService(stateStorage);
     installOperation.createService(logBlockIndexServiceName, logBlockIndexService).install();
 
-    final ReadOnlyLogBlockIndexService readOnlyLogBlockIndexService =
-        new ReadOnlyLogBlockIndexService(stateStorage.getRuntimeDirectory());
-    installOperation
-        .createService(readOnlyLogBlockIndexServiceName, readOnlyLogBlockIndexService)
-        .install();
-
     final LogBlockIndexWriterService logBlockIndexWriterService =
         new LogBlockIndexWriterService(this);
     installOperation
         .createService(logBlockIndexWriterServiceName, logBlockIndexWriterService)
         .dependency(logStorageServiceName, logBlockIndexWriterService.getLogStorageInjector())
         .dependency(logBlockIndexServiceName, logBlockIndexWriterService.getLogBlockIndexInjector())
+        .install();
+
+    final ReadOnlyLogBlockIndexService readOnlyLogBlockIndexService =
+        new ReadOnlyLogBlockIndexService(stateStorage.getRuntimeDirectory());
+    installOperation
+        .createService(readOnlyLogBlockIndexServiceName, readOnlyLogBlockIndexService)
+        .dependency(logBlockIndexWriterServiceName)
         .install();
 
     final LogStreamService logStreamService = new LogStreamService(this);

@@ -17,6 +17,7 @@ package io.zeebe.db;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.agrona.ExpandableArrayBuffer;
 
 /**
  * Represents an column family, where it is possible to store keys of type {@link KeyType} and
@@ -57,6 +58,15 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   ValueType get(KeyType key);
 
+  // TODO: rewrite documentation
+  /**
+   * The corresponding stored value in the column family to the given key.
+   *
+   * @param key the key
+   * @return if the key was found in the column family then the value, otherwise null
+   */
+  ValueType get(KeyType key, ExpandableArrayBuffer keyBuffer, ExpandableArrayBuffer writeBuffer);
+
   /**
    * Visits the values, which are stored in the column family. The ordering depends on the key.
    *
@@ -88,8 +98,15 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * <p>Similar to {@link #forEach(BiConsumer)}.
    *
    * @param visitor the visitor which visits the key-value pairs
+   * @param keyBuffer
+   * @param valueBuffer
    */
   void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor);
+
+  void whileTrue(
+      KeyValuePairVisitor<KeyType, ValueType> visitor,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer);
 
   /**
    * Visits the key-value pairs, which are stored in the column family and which have the same
@@ -109,7 +126,7 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * iteration will stop.
    *
    * <p>Similar to {@link #whileEqualPrefix(DbKey, BiConsumer) and {@link
-   * #whileTrue(KeyValuePairVisitor)}}.
+   * #whileTrue(KeyValuePairVisitor, ExpandableArrayBuffer, ExpandableArrayBuffer) }}.
    *
    * @param keyPrefix the prefix which should have the keys in common
    * @param visitor the visitor which visits the key-value pairs

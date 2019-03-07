@@ -21,6 +21,7 @@ import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.DbLong;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicLong;
+import org.agrona.ExpandableArrayBuffer;
 
 // TODO: rewrite documentation
 /**
@@ -37,28 +38,17 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ReadOnlyLogBlockIndex {
   protected ZeebeDb<LogBlockColumnFamilies> db;
-  protected final ZeebeDbFactory<LogBlockColumnFamilies> dbFactory;
 
   protected ColumnFamily<DbLong, DbLong> blockPositionToAddress;
   protected final DbLong blockPosition = new DbLong();
   protected final DbLong blockAddress = new DbLong();
 
-  protected final File runtimeDirectory;
-
   protected long lastVirtualPosition = -1;
 
-  public ReadOnlyLogBlockIndex() {
-    this.dbFactory = null;
-    runtimeDirectory = null;
-  }
+  public ReadOnlyLogBlockIndex() {}
 
   public ReadOnlyLogBlockIndex(
       ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, File runtimeDirectory) {
-    this.dbFactory = dbFactory;
-    this.runtimeDirectory = runtimeDirectory;
-  }
-
-  public void openDb() {
     db = dbFactory.createReadOnlyDb(runtimeDirectory);
     blockPositionToAddress =
         db.createColumnFamily(
@@ -80,6 +70,21 @@ public class ReadOnlyLogBlockIndex {
    * @return the physical address of the block containing the log entry identified by the provided
    *     virtual position
    */
+  public long lookupBlockAddress(
+      final long entryPosition,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    final long blockPosition = lookupBlockPosition(entryPosition, keyBuffer, valueBuffer);
+    if (blockPosition == -1) {
+      return -1;
+    }
+
+    this.blockPosition.wrapLong(blockPosition);
+    final DbLong address = blockPositionToAddress.get(this.blockPosition, keyBuffer, valueBuffer);
+
+    return address != null ? address.getValue() : -1;
+  }
+
   public long lookupBlockAddress(final long entryPosition) {
     final long blockPosition = lookupBlockPosition(entryPosition);
     if (blockPosition == -1) {
@@ -97,9 +102,34 @@ public class ReadOnlyLogBlockIndex {
    * by the provided position resides.
    *
    * @param entryPosition a virtual log position
+   * @param keyBuffer
+   * @param valueBuffer
    * @return the position of the block containing the log entry identified by the provided virtual
    *     position
    */
+  public long lookupBlockPosition(
+      final long entryPosition,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    final AtomicLong blockPosition = new AtomicLong(-1);
+
+    blockPositionToAddress.whileTrue(
+        (key, val) -> {
+          final long currentBlockPosition = key.getValue();
+
+          if (currentBlockPosition <= entryPosition) {
+            blockPosition.set(currentBlockPosition);
+            return true;
+          } else {
+            return false;
+          }
+        },
+        keyBuffer,
+        valueBuffer);
+
+    return blockPosition.get();
+  }
+
   public long lookupBlockPosition(final long entryPosition) {
     final AtomicLong blockPosition = new AtomicLong(-1);
 

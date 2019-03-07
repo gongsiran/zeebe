@@ -21,7 +21,7 @@ import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 
 class ReadOnlyZeebeColumnFamilyImpl<
         ColumnFamilyNames extends Enum<ColumnFamilyNames>,
@@ -50,7 +50,14 @@ class ReadOnlyZeebeColumnFamilyImpl<
 
   @Override
   public ValueType get(KeyType key) {
-    final DirectBuffer valueBuffer = zeebeDb.get(columnFamilyHandle, key);
+    throw new UnsupportedOperationException(
+        "ReadOnlyZeebeColumnFamily doesn't support get without key/value buffers");
+  }
+
+  @Override
+  public ValueType get(
+      KeyType key, ExpandableArrayBuffer keyBuffer, ExpandableArrayBuffer valueBuffer) {
+    zeebeDb.get(columnFamilyHandle, key, keyBuffer, valueBuffer);
     if (valueBuffer != null) {
       valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity());
       return valueInstance;
@@ -69,8 +76,17 @@ class ReadOnlyZeebeColumnFamilyImpl<
   }
 
   @Override
+  public void whileTrue(
+      KeyValuePairVisitor<KeyType, ValueType> visitor,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    zeebeDb.whileTrue(
+        columnFamilyHandle, keyInstance, valueInstance, visitor, keyBuffer, valueBuffer);
+  }
+
+  @Override
   public void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    zeebeDb.whileTrue(columnFamilyHandle, keyInstance, valueInstance, visitor);
+    throw new UnsupportedOperationException();
   }
 
   @Override
