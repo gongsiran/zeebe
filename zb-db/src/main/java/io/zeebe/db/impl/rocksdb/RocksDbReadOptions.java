@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.db.impl.rocksdb.transaction;
+package io.zeebe.db.impl.rocksdb;
 
 import org.rocksdb.ReadOptions;
 import org.rocksdb.ReadTier;
 import org.rocksdb.Slice;
 import org.rocksdb.Snapshot;
 
-class RocksDbReadOptions extends ReadOptions {
+public class RocksDbReadOptions extends ReadOptions {
 
   public long getNativeHandle() {
     return nativeHandle_;

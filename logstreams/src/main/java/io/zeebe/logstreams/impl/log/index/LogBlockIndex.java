@@ -35,6 +35,7 @@ import io.zeebe.logstreams.state.StateStorage;
  */
 public class LogBlockIndex extends ReadOnlyLogBlockIndex implements SnapshotSupport {
   private final StateSnapshotController stateSnapshotController;
+  private long lastVirtualPosition = -1;
 
   public LogBlockIndex(
       ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, StateStorage stateStorage) {
@@ -82,5 +83,9 @@ public class LogBlockIndex extends ReadOnlyLogBlockIndex implements SnapshotSupp
     final StateSnapshotMetadata snapshotMetadata =
         stateSnapshotController.recoverFromLatestSnapshot();
     lastVirtualPosition = snapshotMetadata.getLastWrittenEventPosition();
+  }
+
+  public long getLastPosition() {
+    return lastVirtualPosition;
   }
 }

@@ -153,6 +153,10 @@ public class LogBlockIndexWriter extends Actor {
         LOG.warn("Can't find address of snapshot position. Rebuilding block index.");
       }
 
+      Loggers.LOGSTREAMS_LOGGER.debug(
+          "After recovery snapshot position/address: {}/{}",
+          snapshotPosition,
+          snapshotBlockAddress);
       if (nextAddress == INVALID_ADDRESS) {
         nextAddress = logStorage.getFirstBlockAddress();
         lastBlockAddress = 0;
@@ -284,7 +288,7 @@ public class LogBlockIndexWriter extends Actor {
         snapshotEventPosition = lastBlockEventPosition;
         blockIndex.writeSnapshot(snapshotEventPosition);
 
-        LOG.trace("Created snapshot of block index {}.", name);
+        LOG.debug("Created snapshot of block index {}.", name);
         snapshotsCreated.incrementOrdered();
       }
     } catch (Exception e) {

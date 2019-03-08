@@ -30,6 +30,9 @@ class TransactionalColumnFamily<
         ValueType extends DbValue>
     implements ColumnFamily<KeyType, ValueType> {
 
+  private static final String NO_BUFFER_MESSAGE =
+      "TransactionalColumnFamily doesn't support passing key/value buffers";
+
   private final ZeebeTransactionDb<ColumnFamilyNames> transactionDb;
   private final long handle;
 
@@ -63,13 +66,6 @@ class TransactionalColumnFamily<
   }
 
   @Override
-  public ValueType get(
-      KeyType key, ExpandableArrayBuffer keyBuffer, ExpandableArrayBuffer writeBuffer) {
-    throw new UnsupportedOperationException(
-        "TransactionalColumnFamily doesn't support passing key/value buffers");
-  }
-
-  @Override
   public void forEach(Consumer consumer) {
     transactionDb.foreach(handle, valueInstance, consumer);
   }
@@ -85,12 +81,22 @@ class TransactionalColumnFamily<
   }
 
   @Override
+  public DbValue get(
+      DbKey key,
+      DbValue value,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer writeBuffer) {
+    throw new UnsupportedOperationException(NO_BUFFER_MESSAGE);
+  }
+
+  @Override
   public void whileTrue(
       KeyValuePairVisitor visitor,
+      DbKey key,
+      DbValue value,
       ExpandableArrayBuffer keyBuffer,
       ExpandableArrayBuffer valueBuffer) {
-    throw new UnsupportedOperationException(
-        "TransactionalColumnFamily doesn't support passing key/value buffers");
+    throw new UnsupportedOperationException(NO_BUFFER_MESSAGE);
   }
 
   @Override

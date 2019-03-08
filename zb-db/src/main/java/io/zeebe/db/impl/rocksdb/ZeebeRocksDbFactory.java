@@ -16,7 +16,7 @@
 package io.zeebe.db.impl.rocksdb;
 
 import io.zeebe.db.ZeebeDbFactory;
-import io.zeebe.db.impl.rocksdb.transaction.ReadOnlyZeebeDbImpl;
+import io.zeebe.db.impl.rocksdb.readonly.ReadOnlyZeebeDbImpl;
 import io.zeebe.db.impl.rocksdb.transaction.ZeebeTransactionDb;
 import java.io.File;
 import java.util.ArrayList;

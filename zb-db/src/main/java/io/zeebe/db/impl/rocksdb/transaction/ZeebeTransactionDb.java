@@ -65,7 +65,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
         OptimisticTransactionDB.open(options, path, columnFamilyDescriptors, handles);
 
     final ColumnFamilyNames[] enumConstants = columnFamilyTypeClass.getEnumConstants();
-    final Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap = new Long2ObjectHashMap();
+    final Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap = new Long2ObjectHashMap<>();
     for (int i = 0; i < handles.size(); i++) {
       columnFamilyMap.put(enumConstants[i], getNativeHandle(handles.get(i)));
       handleToEnumMap.put(getNativeHandle(handles.get(i)), handles.get(i));
@@ -128,9 +128,8 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   }
 
   @Override
-  public <KeyType extends DbKey, ValueType extends DbValue>
-      ColumnFamily<KeyType, ValueType> createColumnFamily(
-          ColumnFamilyNames columnFamily, KeyType keyInstance, ValueType valueInstance) {
+  public ColumnFamily createColumnFamily(
+      Enum columnFamily, DbKey keyInstance, DbValue valueInstance) {
     return new TransactionalColumnFamily<>(this, columnFamily, keyInstance, valueInstance);
   }
 

@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.db.impl.rocksdb.transaction;
+package io.zeebe.db.impl.rocksdb;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksIterator;
 
-class RocksDbIterator extends RocksIterator {
+public class RocksDbIterator extends RocksIterator {
   private static final Method SEEK_METHOD;
 
   static {
@@ -34,7 +34,7 @@ class RocksDbIterator extends RocksIterator {
     }
   }
 
-  RocksDbIterator(final RocksDB rocksDB, final long nativeHandle) {
+  public RocksDbIterator(final RocksDB rocksDB, final long nativeHandle) {
     super(rocksDB, nativeHandle);
   }
 

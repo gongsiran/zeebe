@@ -86,7 +86,9 @@ public class LogStreamRule extends ExternalResource {
 
     try {
       this.blockIndexDirectory = temporaryFolder.newFolder("index", "runtime");
+      blockIndexDirectory.mkdir();
       this.snapshotDirectory = temporaryFolder.newFolder("index", "snapshots");
+      snapshotDirectory.mkdir();
     } catch (IOException e) {
       LOG.error("Couldn't create blockIndex/snapshots directory", e);
     }

@@ -28,7 +28,7 @@ import java.io.File;
  *
  * @param <ColumnFamilyType>
  */
-public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extends AutoCloseable {
+public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extends ReadOnlyZeebeDb {
 
   /**
    * Runs the commands like delete, put etc. in a transaction. Access of different column families
@@ -40,24 +40,6 @@ public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extend
    * @param operations the operations
    */
   void transaction(TransactionOperation operations);
-
-  /**
-   * Creates an instance of a specific column family to access and store key-value pairs in that
-   * column family. The key and value instances are used to ensure type safety.
-   *
-   * <p>If the column family instance is created only the defined key and value types can be stored
-   * in the column family.
-   *
-   * @param columnFamily the enum instance of the column family
-   * @param keyInstance this instance defines the type of the column family key type
-   * @param valueInstance this instance defines the type of the column family value type
-   * @param <KeyType> the key type of the column family
-   * @param <ValueType> the value type of the column family
-   * @return the created column family instance
-   */
-  <KeyType extends DbKey, ValueType extends DbValue>
-      ColumnFamily<KeyType, ValueType> createColumnFamily(
-          ColumnFamilyType columnFamily, KeyType keyInstance, ValueType valueInstance);
 
   /**
    * Creates a snapshot of the current database in the given directory.

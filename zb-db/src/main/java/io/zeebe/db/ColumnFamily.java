@@ -17,7 +17,6 @@ package io.zeebe.db;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import org.agrona.ExpandableArrayBuffer;
 
 /**
  * Represents an column family, where it is possible to store keys of type {@link KeyType} and
@@ -26,7 +25,8 @@ import org.agrona.ExpandableArrayBuffer;
  * @param <KeyType> the type of the keys
  * @param <ValueType> the type of the values
  */
-public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> {
+public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue>
+    extends ReadOnlyColumnFamily {
 
   /**
    * Stores the key-value pair into the column family.
@@ -44,28 +44,12 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
   void delete(KeyType key);
 
   /**
-   * Checks if the column family has any entry.
-   *
-   * @return <code>true</code> if the column family has no entry
-   */
-  boolean isEmpty();
-
-  /**
    * The corresponding stored value in the column family to the given key.
    *
    * @param key the key
    * @return if the key was found in the column family then the value, otherwise null
    */
   ValueType get(KeyType key);
-
-  // TODO: rewrite documentation
-  /**
-   * The corresponding stored value in the column family to the given key.
-   *
-   * @param key the key
-   * @return if the key was found in the column family then the value, otherwise null
-   */
-  ValueType get(KeyType key, ExpandableArrayBuffer keyBuffer, ExpandableArrayBuffer writeBuffer);
 
   /**
    * Visits the values, which are stored in the column family. The ordering depends on the key.
@@ -88,8 +72,6 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   void forEach(BiConsumer<KeyType, ValueType> consumer);
 
-  /** @param visitor */
-
   /**
    * Visits the key-value pairs, which are stored in the column family. The ordering depends on the
    * key. The visitor can indicate via the return value, whether the iteration should continue or
@@ -98,15 +80,8 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * <p>Similar to {@link #forEach(BiConsumer)}.
    *
    * @param visitor the visitor which visits the key-value pairs
-   * @param keyBuffer
-   * @param valueBuffer
    */
   void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor);
-
-  void whileTrue(
-      KeyValuePairVisitor<KeyType, ValueType> visitor,
-      ExpandableArrayBuffer keyBuffer,
-      ExpandableArrayBuffer valueBuffer);
 
   /**
    * Visits the key-value pairs, which are stored in the column family and which have the same
@@ -132,12 +107,4 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * @param visitor the visitor which visits the key-value pairs
    */
   void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor);
-
-  /**
-   * Checks for key existence in the column family.
-   *
-   * @param key the key to look for
-   * @return true if the key exist in this column family, false otherwise
-   */
-  boolean exists(KeyType key);
 }

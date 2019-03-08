@@ -421,6 +421,6 @@ public class LogStreamReaderTest {
             + BufferedLogStreamReader.MAX_BUFFER_CAPACITY);
 
     // when
-    ((BufferedLogStreamReader) reader).wrap(logStorage, logStream.getLogBlockIndex());
+    ((BufferedLogStreamReader) reader).wrap(logStorage, logStream.getReadOnlyLogBlockIndex());
   }
 }
