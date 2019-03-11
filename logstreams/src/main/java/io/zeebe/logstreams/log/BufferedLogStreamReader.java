@@ -15,7 +15,6 @@
  */
 package io.zeebe.logstreams.log;
 
-import io.zeebe.db.impl.DbLong;
 import io.zeebe.logstreams.impl.CompleteEventsInBlockProcessor;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
 import io.zeebe.logstreams.impl.LoggedEventImpl;
@@ -28,7 +27,6 @@ import io.zeebe.util.allocation.DirectBufferAllocator;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public class BufferedLogStreamReader implements LogStreamReader {
@@ -48,12 +46,6 @@ public class BufferedLogStreamReader implements LogStreamReader {
   private LogStream logStream;
   private LogStorage logStorage;
   private ReadOnlyLogBlockIndex logBlockIndex;
-
-  // buffers for read-only block index
-  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
-  private ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
-  private DbLong blockAddress = new DbLong();
-  private DbLong blockPosition = new DbLong();
 
   // state
   private IteratorState state;

@@ -56,6 +56,7 @@ public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum<ColumnFamil
             .collect(Collectors.toList()));
   }
 
+  @Override
   public ReadOnlyZeebeDbImpl<ColumnFamilyType> createReadOnlyDb(File path) {
     return openReadOnlyDb(
         path,

@@ -17,6 +17,6 @@ public interface ReadOnlyZeebeDb<ColumnFamilyNames extends Enum<ColumnFamilyName
    * @return the created column family instance
    */
   <KeyType extends DbKey, ValueType extends DbValue>
-      ReadOnlyColumnFamily<KeyType, ValueType> createColumnFamily(
+      ColumnFamily<KeyType, ValueType> createColumnFamily(
           ColumnFamilyNames columnFamily, KeyType keyInstance, ValueType valueInstance);
 }

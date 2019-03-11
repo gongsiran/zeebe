@@ -35,5 +35,5 @@ public interface ZeebeDbFactory<ColumnFamilyNames extends Enum<ColumnFamilyNames
   ZeebeDb<ColumnFamilyNames> createDb(File pathName);
 
   // TODO: write documentation
-  ReadOnlyZeebeDbImpl<ColumnFamilyNames> createReadOnlyDb(File path);
+  ReadOnlyZeebeDb<ColumnFamilyNames> createReadOnlyDb(File path);
 }

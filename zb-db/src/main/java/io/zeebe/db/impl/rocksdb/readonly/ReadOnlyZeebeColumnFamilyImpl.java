@@ -15,20 +15,25 @@
  */
 package io.zeebe.db.impl.rocksdb.readonly;
 
+import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.DbKey;
 import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
-import io.zeebe.db.ReadOnlyColumnFamily;
-import org.agrona.ExpandableArrayBuffer;
+import io.zeebe.db.impl.DbLong;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 class ReadOnlyZeebeColumnFamilyImpl<
         ColumnFamilyNames extends Enum<ColumnFamilyNames>,
         KeyType extends DbKey,
         ValueType extends DbValue>
-    implements ReadOnlyColumnFamily<KeyType, ValueType> {
+    implements ColumnFamily<KeyType, ValueType> {
 
   private final long columnFamilyHandle;
   private final ReadOnlyZeebeDbImpl<ColumnFamilyNames> zeebeDb;
+  private final ConcurrentLinkedQueue<ReadOnlyRequestBuffers> requestBuffers =
+      new ConcurrentLinkedQueue();
 
   ReadOnlyZeebeColumnFamilyImpl(
       ReadOnlyZeebeDbImpl<ColumnFamilyNames> zeebeDb,
@@ -40,27 +45,31 @@ class ReadOnlyZeebeColumnFamilyImpl<
   }
 
   @Override
-  public ValueType get(
-      KeyType key,
-      ValueType value,
-      ExpandableArrayBuffer keyBuffer,
-      ExpandableArrayBuffer valueBuffer) {
-    zeebeDb.get(columnFamilyHandle, key, keyBuffer, valueBuffer);
-    if (valueBuffer != null) {
-      value.wrap(valueBuffer, 0, valueBuffer.capacity());
-      return value;
+  public ValueType get(KeyType key) {
+    try (final ReadOnlyRequestBuffers buffers = getRequestBuffers()) {
+      buffers.key.wrapLong(((DbLong) key).getValue());
+
+      zeebeDb.get(columnFamilyHandle, buffers.key, buffers.keyBuffer, buffers.valueBuffer);
+
+      if (buffers.value != null) {
+        buffers.value.wrap(buffers.valueBuffer, 0, buffers.valueBuffer.capacity());
+        return (ValueType) buffers.value;
+      }
+      return null;
     }
-    return null;
   }
 
   @Override
-  public void whileTrue(
-      KeyValuePairVisitor<KeyType, ValueType> visitor,
-      KeyType key,
-      ValueType value,
-      ExpandableArrayBuffer keyBuffer,
-      ExpandableArrayBuffer valueBuffer) {
-    zeebeDb.whileTrue(columnFamilyHandle, key, value, visitor, keyBuffer, valueBuffer);
+  public void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor) {
+    try (final ReadOnlyRequestBuffers buffers = getRequestBuffers()) {
+      zeebeDb.whileTrue(
+          columnFamilyHandle,
+          (KeyType) buffers.key,
+          (ValueType) buffers.value,
+          visitor,
+          buffers.keyBuffer,
+          buffers.valueBuffer);
+    }
   }
 
   @Override
@@ -70,6 +79,50 @@ class ReadOnlyZeebeColumnFamilyImpl<
 
   @Override
   public boolean exists(KeyType key) {
-    return zeebeDb.exists(columnFamilyHandle, key);
+    try (final ReadOnlyRequestBuffers buffers = getRequestBuffers()) {
+      buffers.key.wrapLong(((DbLong) key).getValue());
+      return zeebeDb.exists(columnFamilyHandle, buffers.key);
+    }
+  }
+
+  @Override
+  public void forEach(Consumer<ValueType> consumer) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void forEach(BiConsumer<KeyType, ValueType> consumer) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void put(KeyType key, ValueType value) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void delete(KeyType key) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void whileEqualPrefix(DbKey keyPrefix, BiConsumer<KeyType, ValueType> visitor) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor) {
+    throw new UnsupportedOperationException();
+  }
+
+  // TODO: refactor request buffers to contain the logic
+  private ReadOnlyRequestBuffers getRequestBuffers() {
+    ReadOnlyRequestBuffers buffers = requestBuffers.poll();
+
+    if (buffers == null) {
+      buffers = new ReadOnlyRequestBuffers(requestBuffers);
+    }
+
+    return buffers;
   }
 }

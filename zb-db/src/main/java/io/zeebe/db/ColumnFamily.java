@@ -25,8 +25,7 @@ import java.util.function.Consumer;
  * @param <KeyType> the type of the keys
  * @param <ValueType> the type of the values
  */
-public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue>
-    extends ReadOnlyColumnFamily {
+public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> {
 
   /**
    * Stores the key-value pair into the column family.
@@ -100,11 +99,26 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue>
    * whether the iteration should continue or * not. This means if the visitor returns false the
    * iteration will stop.
    *
-   * <p>Similar to {@link #whileEqualPrefix(DbKey, BiConsumer) and {@link
-   * #whileTrue(KeyValuePairVisitor, ExpandableArrayBuffer, ExpandableArrayBuffer) }}.
+   * <p>Similar to {@link #whileEqualPrefix(DbKey, BiConsumer)}.
    *
    * @param keyPrefix the prefix which should have the keys in common
    * @param visitor the visitor which visits the key-value pairs
    */
   void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor);
+
+
+  /**
+   * Checks if the column family has any entry.
+   *
+   * @return <code>true</code> if the column family has no entry
+   */
+  boolean isEmpty();
+
+  /**
+   * Checks for key existence in the column family.
+   *
+   * @param key the key to look for
+   * @return true if the key exist in this column family, false otherwise
+   */
+  boolean exists(KeyType key);
 }

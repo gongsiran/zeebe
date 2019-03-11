@@ -1,4 +1,4 @@
-package io.zeebe.logstreams.impl.log.index;
+package io.zeebe.db.impl.rocksdb.readonly;
 
 import io.zeebe.db.impl.DbLong;
 import java.util.concurrent.ConcurrentLinkedQueue;

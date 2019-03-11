@@ -15,10 +15,10 @@
  */
 package io.zeebe.db.impl.rocksdb.readonly;
 
+import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.DbKey;
 import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
-import io.zeebe.db.ReadOnlyColumnFamily;
 import io.zeebe.db.ReadOnlyZeebeDb;
 import io.zeebe.db.impl.rocksdb.RocksDbIterator;
 import io.zeebe.db.impl.rocksdb.RocksDbReadOptions;
@@ -119,7 +119,7 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
   }
 
   @Override
-  public ReadOnlyColumnFamily createColumnFamily(
+  public ColumnFamily createColumnFamily(
       Enum columnFamily, DbKey keyInstance, DbValue valueInstance) {
     return new ReadOnlyZeebeColumnFamilyImpl(this, columnFamily, keyInstance, valueInstance);
   }
@@ -230,41 +230,6 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
         this, iteratorCF(nativeHandle_, columnFamilyHandle, options.getNativeHandle()));
   }
 
-  //  public <ValueType extends DbValue> void foreach(
-  //      long columnFamilyHandle, ValueType iteratorValue, Consumer<ValueType> consumer) {
-  //    foreach(
-  //        columnFamilyHandle,
-  //        (keyBuffer, valueBuffer) -> {
-  //          iteratorValue.wrap(valueBuffer, 0, valueBuffer.capacity());
-  //          consumer.accept(iteratorValue);
-  //        });
-  //  }
-  //
-  //  public <KeyType extends DbKey, ValueType extends DbValue> void foreach(
-  //      long columnFamilyHandle,
-  //      KeyType iteratorKey,
-  //      ValueType iteratorValue,
-  //      BiConsumer<KeyType, ValueType> consumer) {
-  //    foreach(
-  //        columnFamilyHandle,
-  //        (keyBuffer, valueBuffer) -> {
-  //          iteratorKey.wrap(keyBuffer, 0, keyBuffer.capacity());
-  //          iteratorValue.wrap(valueBuffer, 0, valueBuffer.capacity());
-  //          consumer.accept(iteratorKey, iteratorValue);
-  //        });
-  //  }
-  //
-  //  private void foreach(
-  //      long columnFamilyHandle, BiConsumer<DirectBuffer, DirectBuffer> keyValuePairConsumer) {
-  //    try (final RocksDbIterator iterator = newIterator(columnFamilyHandle)) {
-  //      for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
-  //        keyViewBuffer.wrap(iterator.key());
-  //        valueViewBuffer.wrap(iterator.value());
-  //        keyValuePairConsumer.accept(keyViewBuffer, valueViewBuffer);
-  //      }
-  //    }
-  //  }
-
   public <KeyType extends DbKey, ValueType extends DbValue> void whileTrue(
       long columnFamilyHandle,
       KeyType keyInstance,
@@ -281,69 +246,6 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
       }
     }
   }
-  //
-  //  protected <KeyType extends DbKey, ValueType extends DbValue> void whileEqualPrefix(
-  //      long columnFamilyHandle,
-  //      DbKey prefix,
-  //      KeyType keyInstance,
-  //      ValueType valueInstance,
-  //      BiConsumer<KeyType, ValueType> visitor) {
-  //    whileEqualPrefix(
-  //        columnFamilyHandle,
-  //        prefix,
-  //        keyInstance,
-  //        valueInstance,
-  //        (k, v) -> {
-  //          visitor.accept(k, v);
-  //          return true;
-  //        });
-  //  }
-  //
-  //  /**
-  //   * NOTE: it doesn't seem possible in Java RocksDB to set a flexible prefix extractor on
-  // iterators
-  //   * at the moment, so using prefixes seem to be mostly related to skipping files that do not
-  //   * contain keys with the given prefix (which is useful anyway), but it will still iterate over
-  // all
-  //   * keys contained in those files, so we still need to make sure the key actually matches the
-  //   * prefix.
-  //   *
-  //   * <p>While iterating over subsequent keys we have to validate it.
-  //   */
-  //  protected <KeyType extends DbKey, ValueType extends DbValue> void whileEqualPrefix(
-  //      long columnFamilyHandle,
-  //      DbKey prefix,
-  //      KeyType keyInstance,
-  //      ValueType valueInstance,
-  //      KeyValuePairVisitor<KeyType, ValueType> visitor) {
-  //    if (activePrefixIteration) {
-  //      throw new IllegalStateException(
-  //          "Currently nested prefix iterations are not supported! This will cause unexpected
-  // behavior.");
-  //    }
-  //
-  //    activePrefixIteration = true;
-  //    try (final RocksDbReadOptions options =
-  //            new RocksDbReadOptions().setPrefixSameAsStart(true).setTotalOrderSeek(false);
-  //        final RocksDbIterator iterator = newIterator(columnFamilyHandle, options)) {
-  //      prefix.write(prefixKeyBuffer, 0);
-  //      final int prefixLength = prefix.getLength();
-  //
-  //      boolean shouldVisitNext = true;
-  //      for (iterator.seek(prefixKeyBuffer.byteArray(), prefixLength);
-  //          iterator.isValid() && shouldVisitNext;
-  //          iterator.next()) {
-  //        final byte[] keyBytes = iterator.key();
-  //        if (startsWith(
-  //            prefixKeyBuffer.byteArray(), 0, prefix.getLength(), keyBytes, 0, keyBytes.length)) {
-  //          shouldVisitNext =
-  //              visit(keyInstance, valueInstance, visitor, iterator, keyBuffer, valueBuffer);
-  //        }
-  //      }
-  //    } finally {
-  //      activePrefixIteration = false;
-  //    }
-  //  }
 
   private <KeyType extends DbKey, ValueType extends DbValue> boolean visit(
       KeyType keyInstance,

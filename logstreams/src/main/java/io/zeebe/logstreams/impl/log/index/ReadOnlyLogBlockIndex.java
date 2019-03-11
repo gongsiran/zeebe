@@ -15,7 +15,7 @@
  */
 package io.zeebe.logstreams.impl.log.index;
 
-import io.zeebe.db.ReadOnlyColumnFamily;
+import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ReadOnlyZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.DbLong;
@@ -41,11 +41,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ReadOnlyLogBlockIndex {
   protected ReadOnlyZeebeDb<LogBlockColumnFamilies> db;
 
-  protected ReadOnlyColumnFamily<DbLong, DbLong> blockPositionToAddress;
+  protected ColumnFamily<DbLong, DbLong> blockPositionToAddress;
   protected final DbLong blockPosition = new DbLong();
   protected final DbLong blockAddress = new DbLong();
-  private final ConcurrentLinkedQueue<ReadOnlyRequestBuffers> requestBuffers =
-      new ConcurrentLinkedQueue();
+  private final ConcurrentLinkedQueue<DbLong> requestBuffers = new ConcurrentLinkedQueue();
 
   public ReadOnlyLogBlockIndex() {}
 
@@ -73,23 +72,22 @@ public class ReadOnlyLogBlockIndex {
    *     virtual position
    */
   public long lookupBlockAddress(final long entryPosition) {
-    try (final ReadOnlyRequestBuffers requestBuffers = getRequestBuffers()) {
-      return lookupBlockAddress(requestBuffers);
+    DbLong keyInstance = requestBuffers.poll(); // TODO: refactor this and ReadOnlyRequestBuffers
+    if (keyInstance == null) {
+      keyInstance = new DbLong();
     }
-  }
 
-  public long lookupBlockAddress(final ReadOnlyRequestBuffers buffers) {
-    final long blockPosition = lookupBlockPosition(buffers);
+    final long blockPosition = lookupBlockPosition(entryPosition);
     if (blockPosition == -1) {
       return -1;
     }
 
-    buffers.key.wrapLong(blockPosition);
-    final DbLong address =
-        blockPositionToAddress.get(
-            buffers.key, buffers.value, buffers.keyBuffer, buffers.valueBuffer);
+    keyInstance.wrapLong(blockPosition);
+    final DbLong address = blockPositionToAddress.get(keyInstance);
+    final long blockAddress = address != null ? address.getValue() : -1;
 
-    return address != null ? address.getValue() : -1;
+    requestBuffers.offer(keyInstance);
+    return blockAddress;
   }
 
   /**
@@ -101,44 +99,24 @@ public class ReadOnlyLogBlockIndex {
    *     position
    */
   public long lookupBlockPosition(final long entryPosition) {
-    try (final ReadOnlyRequestBuffers requestBuffers = getRequestBuffers()) {
-      return lookupBlockPosition(requestBuffers);
-    }
-  }
-
-  private long lookupBlockPosition(final ReadOnlyRequestBuffers buffers) {
     final AtomicLong largestBlockPosition = new AtomicLong(-1);
 
     blockPositionToAddress.whileTrue(
         (iterKey, iterValue) -> {
           final long currentBlockPosition = iterKey.getValue();
 
-          if (currentBlockPosition <= buffers.key.getValue()) {
+          if (currentBlockPosition <= entryPosition) {
             largestBlockPosition.set(currentBlockPosition);
             return true;
           } else {
             return false;
           }
-        },
-        buffers.key,
-        buffers.value,
-        buffers.keyBuffer,
-        buffers.valueBuffer);
+        });
 
-    return blockPosition.getValue();
+    return largestBlockPosition.get();
   }
 
   public boolean isEmpty() {
     return blockPositionToAddress.isEmpty();
-  }
-
-  private ReadOnlyRequestBuffers getRequestBuffers() {
-    ReadOnlyRequestBuffers buffers = requestBuffers.poll();
-
-    if (buffers == null) {
-      buffers = new ReadOnlyRequestBuffers(requestBuffers);
-    }
-
-    return buffers;
   }
 }
