@@ -15,27 +15,25 @@
  */
 package io.zeebe.distributedlog.impl;
 
-import io.atomix.cluster.MemberId;
 import io.atomix.primitive.PrimitiveType;
 import io.atomix.primitive.config.PrimitiveConfig;
 import io.zeebe.distributedlog.DistributedLogstreamType;
 
 /* Define any configration parameters needed for the distributed log primitive.*/
 public class DistributedLogstreamConfig extends PrimitiveConfig<DistributedLogstreamConfig> {
-
-  public MemberId getMember() {
-    return member;
-  }
-
-  public DistributedLogstreamConfig withMemberId(MemberId member) {
-    this.member = member;
-    return this;
-  }
-
-  private MemberId member;
+  private String partitionId;
 
   @Override
   public PrimitiveType getType() {
     return DistributedLogstreamType.instance();
+  }
+
+  public DistributedLogstreamConfig withLogName(String partitionId) {
+    this.partitionId = partitionId;
+    return this;
+  }
+
+  public String getLogName() {
+    return partitionId;
   }
 }

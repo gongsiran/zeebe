@@ -6,14 +6,14 @@ import java.util.Map;
 
 public class LogstreamConfig {
 
-  private static final Map<String, LogStream> logStreams = new HashMap<>();
+  private static final Map<String, LogStream> LOG_STREAMS = new HashMap<>();
 
-  public static void setLogStream(String nodeId, String partitionId, LogStream logStream){
-    logStreams.put(logPropertyName(nodeId,partitionId), logStream);
+  public static void putLogStream(String nodeId, String partitionId, LogStream logStream){
+    LOG_STREAMS.put(logPropertyName(nodeId,partitionId), logStream);
   }
 
   public static LogStream getLogStream(String nodeId, String partitionId) {
-    return logStreams.get(logPropertyName(nodeId, partitionId));
+    return LOG_STREAMS.get(logPropertyName(nodeId, partitionId));
   }
 
   private static String logPropertyName(String nodeId, String partitionId){

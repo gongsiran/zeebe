@@ -21,10 +21,4 @@ public interface DistributedLogstreamService {
 
   @Command
   void append(long commitPosition, byte[] blockBuffer);
-
-  @Command
-  void listen();
-
-  @Command
-  void unlisten();
 }

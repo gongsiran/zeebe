@@ -74,29 +74,6 @@ public class DistributedLogstreamProxy
   }
 
   @Override
-  public synchronized CompletableFuture<Void> addListener(
-      String partition, LogEventListener listener) {
-    if (eventListeners.isEmpty()) {
-      eventListeners.add(listener);
-      return getProxyClient().acceptBy(partition, service -> service.listen()).thenApply(v -> null);
-    } else {
-      eventListeners.add(listener);
-      return CompletableFuture.completedFuture(null);
-    }
-  }
-
-  @Override
-  public synchronized CompletableFuture<Void> removeListener(
-      String partition, LogEventListener listener) {
-    if (eventListeners.remove(listener) && eventListeners.isEmpty()) {
-      return getProxyClient()
-          .acceptBy(partition, service -> service.unlisten())
-          .thenApply(v -> null);
-    }
-    return CompletableFuture.completedFuture(null);
-  }
-
-  @Override
   public CompletableFuture<AsyncDistributedLogstream> connect() {
     return super.connect()
         .thenCompose(

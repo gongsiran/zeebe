@@ -25,8 +25,4 @@ public interface AsyncDistributedLogstream extends AsyncPrimitive {
 
   @Override
   DistributedLogstream sync();
-
-  CompletableFuture<Void> addListener(String partition, LogEventListener listener);
-
-  CompletableFuture<Void> removeListener(String partition, LogEventListener listener);
 }

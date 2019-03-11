@@ -31,10 +31,11 @@ import io.zeebe.broker.subscription.message.data.MessageStartEventSubscriptionRe
 import io.zeebe.broker.subscription.message.data.MessageSubscriptionRecord;
 import io.zeebe.broker.subscription.message.data.WorkflowInstanceSubscriptionRecord;
 import io.zeebe.db.ZeebeDbFactory;
-import io.zeebe.distributedlog.CommitLogEvent;
+import io.zeebe.distributedlog.DistributedLogstreamService;
+import io.zeebe.distributedlog.impl.DefaultDistributedLogstreamService;
 import io.zeebe.distributedlog.impl.DistributedLogstreamPartition;
+import io.zeebe.distributedlog.impl.DistributedLogstreamServiceConfig;
 import io.zeebe.logstreams.LogStreams;
-import io.zeebe.logstreams.impl.LogStorageCommitListener;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.LogStream;
@@ -68,7 +69,6 @@ import io.zeebe.servicecontainer.ServiceContainer;
 import io.zeebe.test.util.AutoCloseableRule;
 import io.zeebe.util.LangUtil;
 import io.zeebe.util.sched.ActorScheduler;
-import io.zeebe.util.sched.future.ActorFuture;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -130,22 +130,26 @@ public class TestStreams {
 
     // Create distributed log service
     final DistributedLogstreamPartition mockDistLog = mock(DistributedLogstreamPartition.class);
-    doAnswer(inv -> null).when(mockDistLog).addListener(any());
 
     serviceContainer
         .createService(distributedLogPartitionServiceName(name), () -> mockDistLog)
         .install();
 
     final String rootPath = storageDirectory.getAbsolutePath();
-    final ActorFuture<LogStream> logStreamFuture =
+    final LogStream logStream =
         LogStreams.createFsLogStream(partitionId)
             .logRootPath(rootPath)
             .serviceContainer(serviceContainer)
             .logName(name)
             .deleteOnClose(true)
-            .build();
+            .build()
+            .join();
 
     // mock append
+    //LogstreamConfig.putLogStream(logStream.getLogName(), logStream);
+    final DistributedLogstreamService distributedLogImpl =
+        new DefaultDistributedLogstreamService(
+            new DistributedLogstreamServiceConfig().withLogName(logStream.getLogName()));
     doAnswer(
             (Answer<Void>)
                 invocation -> {
@@ -158,16 +162,12 @@ public class TestStreams {
                     final long pos = (long) arguments[1];
                     final byte[] bytes = new byte[buffer.remaining()];
                     buffer.get(bytes);
-                    final LogStorageCommitListener listener =
-                        logStreamFuture.get().getLogStorageCommitter();
-                    listener.onCommit(new CommitLogEvent(pos, bytes));
+                    distributedLogImpl.append(pos, bytes);
                   }
                   return null;
                 })
         .when(mockDistLog)
         .append(any(ByteBuffer.class), anyLong());
-
-    final LogStream logStream = logStreamFuture.join();
 
     logStream.openAppender().join();
 

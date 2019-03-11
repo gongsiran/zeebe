@@ -16,15 +16,10 @@
 package io.zeebe.distributedlog.impl;
 
 import io.atomix.core.Atomix;
-import io.atomix.primitive.partition.PartitionId;
 import io.atomix.protocols.raft.MultiRaftProtocol;
-import io.atomix.protocols.raft.partition.RaftPartition;
-import io.atomix.protocols.raft.partition.RaftPartitionGroup;
-import io.atomix.protocols.raft.partition.RaftPartitionGroup.Type;
 import io.zeebe.distributedlog.DistributedLogstream;
 import io.zeebe.distributedlog.DistributedLogstreamBuilder;
 import io.zeebe.distributedlog.DistributedLogstreamType;
-import io.zeebe.distributedlog.LogEventListener;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
@@ -62,40 +57,19 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
     distributedLog.append(partitionName, commitPosition, blockBuffer);
   }
 
-  public void addListener(LogEventListener listener) {
-    distributedLog.addListener(partitionName, listener);
-  }
-
-  public void removeListener(LogEventListener listener) {
-    distributedLog.removeListener(partitionName, listener);
-  }
-
   @Override
   public void start(ServiceStartContext startContext) {
     this.atomix = atomixInjector.getValue();
     this.logStream = logStreamInjector.getValue();
 
-    Type type;
-    RaftPartition partition =
-        (RaftPartition)
-            atomix
-                .getPartitionService()
-                .getPartitionGroup("raft-atomix")
-                .getPartition(PartitionId.from("raft-atomix", partitionId));
-    String name = partition.name();
-
-    String localNodeId = atomix.getMembershipService().getLocalMember().id().id();
-    LOG.info(
-        "Setting logstream {} {} logstream partitionid {}",
-        localNodeId,
-        name,
-        logStream.getPartitionId());
-    LogstreamConfig.setLogStream(localNodeId, name, logStream);
+    String nodeId = atomix.getMembershipService().getLocalMember().id().id();
+    LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
 
     distributedLog =
         atomix
             .<DistributedLogstreamBuilder, DistributedLogstreamConfig, DistributedLogstream>
                 primitiveBuilder(primitiveName, DistributedLogstreamType.instance())
+            .withLogName(partitionName)
             .withProtocol(PROTOCOL)
             .build();
   }

@@ -18,7 +18,6 @@ package io.zeebe.distributedlog.impl;
 import io.atomix.primitive.Synchronous;
 import io.zeebe.distributedlog.AsyncDistributedLogstream;
 import io.zeebe.distributedlog.DistributedLogstream;
-import io.zeebe.distributedlog.LogEventListener;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -51,27 +50,6 @@ public class BlockingDistributedLogstream extends Synchronous<AsyncDistributedLo
     } catch (TimeoutException e) {
       e.printStackTrace();
     }
-  }
-
-  @Override
-  public void addListener(String partition, LogEventListener listener) {
-    try {
-      distributedLogstreamProxy
-          .addListener(partition, listener)
-          .get(timeout, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (ExecutionException e) {
-      e.printStackTrace();
-    } catch (TimeoutException e) {
-      e.printStackTrace();
-    }
-  }
-
-  @Override
-  public void removeListener(String partition, LogEventListener listener) {
-    // TODO: should we wait for the result?
-    distributedLogstreamProxy.removeListener(partition, listener);
   }
 
   @Override

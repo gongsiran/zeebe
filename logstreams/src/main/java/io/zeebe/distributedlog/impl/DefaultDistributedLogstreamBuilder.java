@@ -15,7 +15,6 @@
  */
 package io.zeebe.distributedlog.impl;
 
-import io.atomix.cluster.MemberId;
 import io.atomix.primitive.PrimitiveManagementService;
 import io.atomix.primitive.protocol.PrimitiveProtocol;
 import io.atomix.primitive.protocol.ProxyProtocol;
@@ -38,7 +37,7 @@ public class DefaultDistributedLogstreamBuilder extends DistributedLogstreamBuil
   public CompletableFuture<DistributedLogstream> buildAsync() {
     return newProxy(
             DistributedLogstreamService.class,
-            new DistributedLogstreamServiceConfig(config.getMember()))
+            new DistributedLogstreamServiceConfig().withLogName(config.getLogName()))
         .thenCompose(
             proxyClient ->
                 new DistributedLogstreamProxy(proxyClient, managementService.getPrimitiveRegistry())
@@ -52,8 +51,8 @@ public class DefaultDistributedLogstreamBuilder extends DistributedLogstreamBuil
   }
 
   @Override
-  public DistributedLogstreamBuilder withMemberId(MemberId member) {
-    config.withMemberId(member);
+  public DistributedLogstreamBuilder withLogName(String partitionId) {
+    config.withLogName(partitionId);
     return this;
   }
 }

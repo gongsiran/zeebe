@@ -22,10 +22,6 @@ public interface DistributedLogstream extends SyncPrimitive {
 
   void append(String partition, long commitPosition, ByteBuffer blockBuffer);
 
-  void addListener(String partition, LogEventListener listener);
-
-  void removeListener(String partition, LogEventListener listener);
-
   @Override
   AsyncDistributedLogstream async();
 }

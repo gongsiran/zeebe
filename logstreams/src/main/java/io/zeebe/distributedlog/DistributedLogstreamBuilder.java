@@ -15,7 +15,6 @@
  */
 package io.zeebe.distributedlog;
 
-import io.atomix.cluster.MemberId;
 import io.atomix.primitive.PrimitiveBuilder;
 import io.atomix.primitive.PrimitiveManagementService;
 import io.atomix.primitive.protocol.ProxyCompatibleBuilder;
@@ -33,5 +32,5 @@ public abstract class DistributedLogstreamBuilder
     super(DistributedLogstreamType.instance(), name, config, managementService);
   }
 
-  public abstract DistributedLogstreamBuilder withMemberId(MemberId member);
+  public abstract DistributedLogstreamBuilder withLogName(String partitionId);
 }

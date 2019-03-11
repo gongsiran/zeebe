@@ -18,7 +18,6 @@ package io.zeebe.distributedlog;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.distributedLogPartitionServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageAppenderRootService;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageAppenderServiceName;
-import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageCommitListenerServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamServiceName;
 import static io.zeebe.util.buffer.BufferUtil.bufferAsString;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
@@ -91,9 +90,6 @@ public class DistributedLogPartitionRule {
     logStream = logStreamFuture.join();
 
     reader = new BufferedLogStreamReader(logStream);
-
-    TestUtil.waitUntil(
-        () -> serviceContainer.hasService(logStorageCommitListenerServiceName(logName)));
   }
 
   public void becomeLeader() {

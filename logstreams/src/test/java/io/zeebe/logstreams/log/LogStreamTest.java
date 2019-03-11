@@ -26,12 +26,13 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 import io.zeebe.dispatcher.Dispatcher;
-import io.zeebe.distributedlog.CommitLogEvent;
+import io.zeebe.distributedlog.DistributedLogstreamService;
+import io.zeebe.distributedlog.impl.DefaultDistributedLogstreamService;
 import io.zeebe.distributedlog.impl.DistributedLogstreamPartition;
+import io.zeebe.distributedlog.impl.DistributedLogstreamServiceConfig;
 import io.zeebe.logstreams.impl.LogStreamBuilder;
 import io.zeebe.servicecontainer.testing.ServiceContainerRule;
 import io.zeebe.test.util.AutoCloseableRule;
-import io.zeebe.util.sched.future.ActorFuture;
 import io.zeebe.util.sched.testing.ActorSchedulerRule;
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -81,8 +82,12 @@ public class LogStreamTest {
 
     streamConfig.accept(builder);
 
-    final ActorFuture<LogStream> logStreamFuture = builder.build();
+    final LogStream logStream = builder.build().join();
 
+    //LogstreamConfig.putLogStream(logStream.getLogName(), logStream);
+    final DistributedLogstreamService distributedLogImpl =
+        new DefaultDistributedLogstreamService(
+            new DistributedLogstreamServiceConfig().withLogName(logStream.getLogName()));
     doAnswer(
             (Answer<Void>)
                 invocation -> {
@@ -95,17 +100,13 @@ public class LogStreamTest {
                     final long pos = (long) arguments[1];
                     final byte[] bytes = new byte[buffer.remaining()];
                     buffer.get(bytes);
-                    logStreamFuture
-                        .get()
-                        .getLogStorageCommitter()
-                        .onCommit(new CommitLogEvent(pos, bytes));
+                    distributedLogImpl.append(pos, bytes);
                   }
                   return null;
                 })
         .when(mockDistLog)
         .append(any(ByteBuffer.class), anyLong());
 
-    final LogStream logStream = logStreamFuture.join();
     return logStream;
   }
 
