@@ -51,6 +51,10 @@ import java.util.List;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -58,14 +62,19 @@ public class RecordingExporter implements Exporter {
 
   private static final List<Record<?>> RECORDS = new CopyOnWriteArrayList<>();
 
-  private static final Object EXPORT_MONITOR = new Object();
+  private static final Lock LOCK = new ReentrantLock();
+  private static final Condition IS_EMPTY_CONDITION = LOCK.newCondition();
+
   private static final long MAX_WAIT = Duration.ofSeconds(5).toMillis();
 
   @Override
   public void export(final Record record) {
-    RECORDS.add(record);
-    synchronized (EXPORT_MONITOR) {
-      EXPORT_MONITOR.notifyAll();
+    LOCK.lock();
+    try {
+      RECORDS.add(record);
+      IS_EMPTY_CONDITION.signal();
+    } finally {
+      LOCK.unlock();
     }
   }
 
@@ -222,18 +231,18 @@ public class RecordingExporter implements Exporter {
 
     @Override
     public boolean hasNext() {
-      if (isEmpty()) {
-        // block haven't got enough records yet
-        try {
-          synchronized (EXPORT_MONITOR) {
-            EXPORT_MONITOR.wait(MAX_WAIT);
-          }
-        } catch (final InterruptedException e) {
-          throw new RuntimeException(e);
+      // block haven't got enough records yet
+      try {
+        LOCK.lock();
+        if (isEmpty()) {
+          IS_EMPTY_CONDITION.await(MAX_WAIT, TimeUnit.MILLISECONDS);
         }
+        return !isEmpty();
+      } catch (final InterruptedException e) {
+        throw new RuntimeException(e);
+      } finally {
+        LOCK.unlock();
       }
-
-      return !isEmpty();
     }
 
     @Override
