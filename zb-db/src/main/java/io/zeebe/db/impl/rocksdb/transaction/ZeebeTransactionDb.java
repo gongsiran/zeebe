@@ -316,13 +316,36 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       KeyType keyInstance,
       ValueType valueInstance,
       KeyValuePairVisitor<KeyType, ValueType> visitor) {
+    whileTrue(
+        columnFamilyHandle,
+        keyInstance,
+        valueInstance,
+        this.keyViewBuffer,
+        this.valueViewBuffer,
+        visitor);
+  }
+
+  public <KeyType extends DbKey, ValueType extends DbValue> void whileTrue(
+      long columnFamilyHandle,
+      KeyType keyInstance,
+      ValueType valueInstance,
+      DirectBuffer keyViewBuffer,
+      DirectBuffer valueViewBuffer,
+      KeyValuePairVisitor<KeyType, ValueType> visitor) {
     ensureInOpenTransaction(
         () -> {
-          try (ReadOptions readOptions = new ReadOptions();
-              RocksIterator iterator = newIterator(columnFamilyHandle, readOptions)) {
+          try (final ReadOptions readOptions = new ReadOptions();
+              final RocksIterator iterator = newIterator(columnFamilyHandle, readOptions)) {
             boolean shouldVisitNext = true;
             for (iterator.seekToFirst(); iterator.isValid() && shouldVisitNext; iterator.next()) {
-              shouldVisitNext = visit(keyInstance, valueInstance, visitor, iterator);
+              shouldVisitNext =
+                  visit(
+                      keyInstance,
+                      valueInstance,
+                      keyViewBuffer,
+                      valueViewBuffer,
+                      visitor,
+                      iterator);
             }
           }
         });
@@ -402,8 +425,19 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   }
 
   private <KeyType extends DbKey, ValueType extends DbValue> boolean visit(
+      final KeyType keyInstance,
+      final ValueType valueInstance,
+      final KeyValuePairVisitor<KeyType, ValueType> visitor,
+      final RocksIterator iterator) {
+    return visit(
+        keyInstance, valueInstance, this.keyViewBuffer, this.valueViewBuffer, visitor, iterator);
+  }
+
+  private <KeyType extends DbKey, ValueType extends DbValue> boolean visit(
       KeyType keyInstance,
       ValueType valueInstance,
+      DirectBuffer keyViewBuffer,
+      DirectBuffer valueViewBuffer,
       KeyValuePairVisitor<KeyType, ValueType> iteratorConsumer,
       RocksIterator iterator) {
     keyViewBuffer.wrap(iterator.key());

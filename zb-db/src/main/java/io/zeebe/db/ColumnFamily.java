@@ -37,7 +37,15 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   void put(KeyType key, ValueType value);
 
-  //  TODO: write docs
+  /**
+   * Stores the key-value pair into the column family. Allows passing buffers to be used by ZeebeDb,
+   * in order to facilitate concurrent usage
+   *
+   * @param key the key to be used
+   * @param value the value to be stored
+   * @param keyBuffer buffer where ZeebeTransactionDb keeps the key during the operation
+   * @param valueBuffer buffer where ZeebeTransactionDb keeps the value during the operation
+   */
   void put(
       KeyType key,
       ValueType value,
@@ -52,7 +60,18 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   ValueType get(KeyType key);
 
-  // TODO: write documentation
+  /**
+   * The corresponding stored value in the column family to the given key. Allows passing buffers to
+   * be used by ZeebeDb, in order to facilitate concurrent usage
+   *
+   * @see io.zeebe.db.impl.rocksdb.transaction.ZeebeTransactionDb#get(long, DbKey,
+   *     ExpandableArrayBuffer, DirectBuffer)
+   * @param key the key
+   * @param value the value (remains unchanged if no key is found)
+   * @param keyBuffer buffer where ZeebeTransactionDb keeps the key during the operation
+   * @param valueViewBuffer buffer used by ZeebeTransactionDb to store the value
+   * @return if the key was found in the column family then the value, otherwise null
+   */
   ValueType get(
       KeyType key, ValueType value, ExpandableArrayBuffer keyBuffer, DirectBuffer valueViewBuffer);
 
@@ -90,8 +109,23 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor);
 
-  //  TODO: write docs
-  void whileTrue(KeyValuePairVisitor visitor, KeyType key, ValueType value);
+  /**
+   * Visits the key-value pairs, which are stored in the column family. The ordering depends on the
+   * key. The visitor can indicate via the return value, whether the iteration should continue or
+   * not. This means if the visitor returns false the iteration will stop.
+   *
+   * <p>Similar to {@link #forEach(BiConsumer)}.
+   *
+   * @param visitor the visitor which visits the key-value pairs
+   * @param key the key to be used
+   * @param value the value to be stored
+   */
+  void whileTrue(
+      KeyValuePairVisitor visitor,
+      KeyType key,
+      ValueType value,
+      DirectBuffer keyViewBuffer,
+      DirectBuffer valueViewBuffer);
 
   /**
    * Visits the key-value pairs, which are stored in the column family and which have the same

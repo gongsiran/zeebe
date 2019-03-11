@@ -96,6 +96,7 @@ public class LogStreamUtil {
     private boolean findStartAddress(long position) {
       if (!blockIndex.isEmpty()) {
         entryPosition.wrapLong(position);
+        // TODO: 
         nextReadAddress =
             blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer);
       } else {

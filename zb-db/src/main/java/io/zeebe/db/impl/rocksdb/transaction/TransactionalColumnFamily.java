@@ -98,7 +98,12 @@ class TransactionalColumnFamily<
   }
 
   @Override
-  public void whileTrue(KeyValuePairVisitor visitor, KeyType key, ValueType value) {
+  public void whileTrue(
+      KeyValuePairVisitor visitor,
+      KeyType key,
+      ValueType value,
+      DirectBuffer keyViewBuffer,
+      DirectBuffer valueViewBuffer) {
     transactionDb.whileTrue(handle, keyInstance, valueInstance, visitor);
   }
 

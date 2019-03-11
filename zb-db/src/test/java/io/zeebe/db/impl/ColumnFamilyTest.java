@@ -15,6 +15,7 @@
  */
 package io.zeebe.db.impl;
 
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.db.ColumnFamily;
@@ -23,6 +24,9 @@ import io.zeebe.db.ZeebeDbFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,6 +75,29 @@ public class ColumnFamilyTest {
   }
 
   @Test
+  public void shouldPutValueWithBuffers() {
+    // given
+    key.wrapLong(1213);
+    value.wrapLong(255);
+    final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+    final ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
+
+    // when
+    columnFamily.put(key, value, keyBuffer, valueBuffer);
+    value.wrapLong(221);
+
+    // then
+    final DbLong zbLong = columnFamily.get(key);
+
+    assertThat(zbLong).isNotNull();
+    assertThat(zbLong.getValue()).isEqualTo(255);
+    assertThat(value.getValue()).isEqualTo(255);
+
+    assertThat(valueBuffer.getLong(0, ZB_DB_BYTE_ORDER)).isEqualTo(zbLong.getValue());
+    assertThat(keyBuffer.getLong(0, ZB_DB_BYTE_ORDER)).isEqualTo(1213);
+  }
+
+  @Test
   public void shouldReturnNullIfNotExist() {
     // given
     key.wrapLong(1213);
@@ -80,6 +107,22 @@ public class ColumnFamilyTest {
 
     // then
     assertThat(zbLong).isNull();
+  }
+
+  @Test
+  public void shouldReturnNullIfNotExistWithBuffers() {
+    // given
+    key.wrapLong(1213);
+    value.wrapLong(9999);
+    final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+    final DirectBuffer valueViewBuffer = new UnsafeBuffer();
+
+    // when
+    final DbLong zbLong = columnFamily.get(key, value, keyBuffer, valueViewBuffer);
+
+    // then
+    assertThat(zbLong).isNull();
+    assertThat(value.getValue()).isEqualTo(9999); // remains unchanged
   }
 
   @Test

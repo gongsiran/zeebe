@@ -78,8 +78,10 @@ public class LogBlockIndex implements SnapshotSupport {
       DbLong entryPosition,
       DbLong blockAddress,
       ExpandableArrayBuffer keyBuffer,
+      DirectBuffer keyViewBuffer,
       DirectBuffer valueViewBuffer) {
-    final long blockPosition = lookupBlockPosition(entryPosition, blockAddress);
+    final long blockPosition =
+        lookupBlockPosition(entryPosition, blockAddress, keyViewBuffer, valueViewBuffer);
     if (blockPosition == -1) {
       return -1;
     }
@@ -99,7 +101,11 @@ public class LogBlockIndex implements SnapshotSupport {
    * @return the position of the block containing the log entry identified by the provided virtual
    *     position
    */
-  public long lookupBlockPosition(DbLong entryPosition, DbLong returnBlockPosition) {
+  public long lookupBlockPosition(
+      DbLong entryPosition,
+      DbLong returnBlockPosition,
+      DirectBuffer keyViewBuffer,
+      DirectBuffer valueViewBuffer) {
     final AtomicLong matchingBlockPosition = new AtomicLong(-1);
 
     blockPositionToAddress.whileTrue(
@@ -114,8 +120,9 @@ public class LogBlockIndex implements SnapshotSupport {
           }
         },
         entryPosition,
-        returnBlockPosition); // TODO: add test to assert that returnBlockPosition also contains the
-                              // correct value
+        returnBlockPosition,
+        keyViewBuffer,
+        valueViewBuffer);
 
     return matchingBlockPosition.get();
   }
@@ -133,8 +140,6 @@ public class LogBlockIndex implements SnapshotSupport {
       throw new IllegalArgumentException(errorMessage);
     }
 
-    // TODO: the above check and the assignment aren't atomic and could be an issue if there are
-    // concurrent writes
     lastVirtualPosition = blockPosition.getValue();
     blockPositionToAddress.put(blockPosition, blockAddress);
   }
