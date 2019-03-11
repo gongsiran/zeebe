@@ -93,7 +93,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   private final OptimisticTransactionDB optimisticTransactionDB;
   private ZeebeTransaction currentTransaction;
-  private final List<AutoCloseable> closables;
+  private final List<AutoCloseable> closeables;
   private final Class<ColumnFamilyNames> columnFamilyNamesClass;
 
   // we can also simply use one buffer
@@ -108,18 +108,18 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       new ExpandableArrayBuffer[] {new ExpandableArrayBuffer(), new ExpandableArrayBuffer()};
 
   private final EnumMap<ColumnFamilyNames, Long> columnFamilyMap;
-  private final Long2ObjectHashMap<ColumnFamilyHandle> handelToEnumMap;
+  private final Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap;
 
   protected ZeebeTransactionDb(
       OptimisticTransactionDB optimisticTransactionDB,
       EnumMap<ColumnFamilyNames, Long> columnFamilyMap,
-      Long2ObjectHashMap<ColumnFamilyHandle> handelToEnumMap,
-      List<AutoCloseable> closables,
+      Long2ObjectHashMap<ColumnFamilyHandle> handleToEnumMap,
+      List<AutoCloseable> closeables,
       Class<ColumnFamilyNames> columnFamilyNamesClass) {
     this.optimisticTransactionDB = optimisticTransactionDB;
     this.columnFamilyMap = columnFamilyMap;
-    this.handelToEnumMap = handelToEnumMap;
-    this.closables = closables;
+    this.handleToEnumMap = handleToEnumMap;
+    this.closeables = closeables;
     this.columnFamilyNamesClass = columnFamilyNamesClass;
   }
 
@@ -135,6 +135,15 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   }
 
   protected void put(long columnFamilyHandle, DbKey key, DbValue value) {
+    put(columnFamilyHandle, key, value, this.keyBuffer, this.valueBuffer);
+  }
+
+  protected void put(
+      long columnFamilyHandle,
+      DbKey key,
+      DbValue value,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
     ensureInOpenTransaction(
         () -> {
           key.write(keyBuffer, 0);
@@ -190,12 +199,24 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   ////////////////////////////////////////////////////////////////////
 
   protected DirectBuffer get(long columnFamilyHandle, DbKey key) {
-    key.write(keyBuffer, 0);
-    final int keyLength = key.getLength();
-    return getValue(columnFamilyHandle, keyLength);
+    return get(columnFamilyHandle, key, this.keyBuffer, this.valueViewBuffer);
   }
 
-  private DirectBuffer getValue(long columnFamilyHandle, int keyLength) {
+  protected DirectBuffer get(
+      long columnFamilyHandle,
+      DbKey key,
+      ExpandableArrayBuffer keyBuffer,
+      DirectBuffer valueViewBuffer) {
+    key.write(keyBuffer, 0);
+    final int keyLength = key.getLength();
+    return getValue(columnFamilyHandle, keyBuffer, keyLength, valueViewBuffer);
+  }
+
+  private DirectBuffer getValue(
+      long columnFamilyHandle,
+      ExpandableArrayBuffer keyBuffer,
+      int keyLength,
+      final DirectBuffer valueViewBuffer) {
     ensureInOpenTransaction(
         () -> {
           try (ReadOptions readOptions = new ReadOptions()) {
@@ -217,10 +238,19 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   protected boolean exists(long columnFamilyHandle, DbKey key) {
     valueViewBuffer.wrap(new byte[0]);
+    return exists(columnFamilyHandle, key, keyBuffer, valueViewBuffer);
+  }
+
+  protected boolean exists(
+      long columnFamilyHandle,
+      DbKey key,
+      ExpandableArrayBuffer keyBuffer,
+      DirectBuffer valueViewBuffer) {
+    valueViewBuffer.wrap(new byte[0]);
     ensureInOpenTransaction(
         () -> {
           key.write(keyBuffer, 0);
-          getValue(columnFamilyHandle, key.getLength());
+          getValue(columnFamilyHandle, keyBuffer, key.getLength(), valueViewBuffer);
         });
     return valueViewBuffer.capacity() > ZERO_SIZE_ARRAY.length;
   }
@@ -238,7 +268,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   ////////////////////////////////////////////////////////////////////
 
   RocksIterator newIterator(long columnFamilyHandle, ReadOptions options) {
-    final ColumnFamilyHandle handle = handelToEnumMap.get(columnFamilyHandle);
+    final ColumnFamilyHandle handle = handleToEnumMap.get(columnFamilyHandle);
     return currentTransaction.newIterator(options, handle);
   }
 
@@ -413,7 +443,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   @Override
   public void close() {
-    closables.forEach(
+    closeables.forEach(
         closable -> {
           try {
             closable.close();

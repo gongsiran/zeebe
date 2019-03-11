@@ -24,6 +24,8 @@ import io.zeebe.logstreams.state.StateSnapshotController;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
 import io.zeebe.logstreams.state.StateStorage;
 import java.util.concurrent.atomic.AtomicLong;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 
 /**
  * Block index, mapping an event's position to the physical address of the block in which it resides
@@ -41,9 +43,6 @@ public class LogBlockIndex implements SnapshotSupport {
 
   private final StateSnapshotController stateSnapshotController;
   private ColumnFamily<DbLong, DbLong> blockPositionToAddress;
-
-  private final DbLong blockPosition = new DbLong();
-  private final DbLong value = new DbLong();
   private ZeebeDb db;
 
   private long lastVirtualPosition = -1;
@@ -56,7 +55,8 @@ public class LogBlockIndex implements SnapshotSupport {
   public void openDb() {
     db = stateSnapshotController.openDb();
     blockPositionToAddress =
-        db.createColumnFamily(LogBlockColumnFamilies.BLOCK_POSITION_ADDRESS, blockPosition, value);
+        db.createColumnFamily(
+            LogBlockColumnFamilies.BLOCK_POSITION_ADDRESS, new DbLong(), new DbLong());
   }
 
   public void closeDb() throws Exception {
@@ -74,14 +74,19 @@ public class LogBlockIndex implements SnapshotSupport {
    * @return the physical address of the block containing the log entry identified by the provided
    *     virtual position
    */
-  public synchronized long lookupBlockAddress(final long entryPosition) {
-    final long blockPosition = lookupBlockPosition(entryPosition);
+  public long lookupBlockAddress(
+      DbLong entryPosition,
+      DbLong blockAddress,
+      ExpandableArrayBuffer keyBuffer,
+      DirectBuffer valueViewBuffer) {
+    final long blockPosition = lookupBlockPosition(entryPosition, blockAddress);
     if (blockPosition == -1) {
       return -1;
     }
 
-    this.blockPosition.wrapLong(blockPosition);
-    final DbLong address = blockPositionToAddress.get(this.blockPosition);
+    entryPosition.wrapLong(blockPosition);
+    final DbLong address =
+        blockPositionToAddress.get(entryPosition, blockAddress, keyBuffer, valueViewBuffer);
 
     return address != null ? address.getValue() : -1;
   }
@@ -94,38 +99,44 @@ public class LogBlockIndex implements SnapshotSupport {
    * @return the position of the block containing the log entry identified by the provided virtual
    *     position
    */
-  public synchronized long lookupBlockPosition(final long entryPosition) {
-    final AtomicLong blockPosition = new AtomicLong(-1);
+  public long lookupBlockPosition(DbLong entryPosition, DbLong returnBlockPosition) {
+    final AtomicLong matchingBlockPosition = new AtomicLong(-1);
 
     blockPositionToAddress.whileTrue(
-        (key, val) -> {
-          final long currentBlockPosition = key.getValue();
+        (iterBlockPosition, iterBlockAddress) -> {
+          final long currentBlockPosition = ((DbLong) iterBlockPosition).getValue();
 
-          if (currentBlockPosition <= entryPosition) {
-            blockPosition.set(currentBlockPosition);
+          if (currentBlockPosition <= entryPosition.getValue()) {
+            matchingBlockPosition.set(currentBlockPosition);
             return true;
           } else {
             return false;
           }
-        });
+        },
+        entryPosition,
+        returnBlockPosition); // TODO: add test to assert that returnBlockPosition also contains the
+                              // correct value
 
-    return blockPosition.get();
+    return matchingBlockPosition.get();
   }
 
-  public synchronized void addBlock(long blockPosition, long blockAddress) {
-    if (lastVirtualPosition >= blockPosition) {
+  public void addBlock(
+      DbLong blockPosition,
+      DbLong blockAddress,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    if (lastVirtualPosition >= blockPosition.getValue()) {
       final String errorMessage =
           String.format(
               "Illegal value for position.Value=%d, last value in index=%d. Must provide positions in ascending order.",
-              blockPosition, lastVirtualPosition);
+              blockPosition.getValue(), lastVirtualPosition);
       throw new IllegalArgumentException(errorMessage);
     }
 
-    lastVirtualPosition = blockPosition;
-    this.blockPosition.wrapLong(blockPosition);
-    value.wrapLong(blockAddress);
-
-    blockPositionToAddress.put(this.blockPosition, value);
+    // TODO: the above check and the assignment aren't atomic and could be an issue if there are
+    // concurrent writes
+    lastVirtualPosition = blockPosition.getValue();
+    blockPositionToAddress.put(blockPosition, blockAddress);
   }
 
   @Override
@@ -141,7 +152,7 @@ public class LogBlockIndex implements SnapshotSupport {
     lastVirtualPosition = snapshotMetadata.getLastWrittenEventPosition();
   }
 
-  public synchronized boolean isEmpty() {
+  public boolean isEmpty() {
     return blockPositionToAddress.isEmpty();
   }
 

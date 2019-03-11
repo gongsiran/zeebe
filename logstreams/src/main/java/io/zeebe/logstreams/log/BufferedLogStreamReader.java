@@ -15,6 +15,7 @@
  */
 package io.zeebe.logstreams.log;
 
+import io.zeebe.db.impl.DbLong;
 import io.zeebe.logstreams.impl.CompleteEventsInBlockProcessor;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
 import io.zeebe.logstreams.impl.LoggedEventImpl;
@@ -27,6 +28,7 @@ import io.zeebe.util.allocation.DirectBufferAllocator;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public class BufferedLogStreamReader implements LogStreamReader {
@@ -60,6 +62,11 @@ public class BufferedLogStreamReader implements LogStreamReader {
   private ByteBuffer byteBuffer;
   private int bufferOffset;
   private DirectBuffer directBuffer = new UnsafeBuffer(0, 0);
+
+  private DbLong entryPosition = new DbLong();
+  private DbLong blockAddress = new DbLong();
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private DirectBuffer valueViewBuffer = new UnsafeBuffer();
 
   public BufferedLogStreamReader() {
     this(false);
@@ -332,7 +339,9 @@ public class BufferedLogStreamReader implements LogStreamReader {
   }
 
   private long lookUpBlockAddressForPosition(final long position) {
-    long address = logBlockIndex.lookupBlockAddress(position);
+    entryPosition.wrapLong(position);
+    long address =
+        logBlockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer);
     if (address < 0) {
       // position not found in index fallback to first block
       address = logStorage.getFirstBlockAddress();

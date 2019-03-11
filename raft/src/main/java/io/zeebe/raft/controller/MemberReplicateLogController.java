@@ -18,6 +18,7 @@ package io.zeebe.raft.controller;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventPositionNullValue;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventTermNullValue;
 
+import io.zeebe.db.impl.DbLong;
 import io.zeebe.logstreams.impl.LoggedEventImpl;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
@@ -38,6 +39,9 @@ import io.zeebe.util.sched.ActorCondition;
 import io.zeebe.util.sched.ActorPriority;
 import io.zeebe.util.sched.clock.ActorClock;
 import java.time.Duration;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.slf4j.Logger;
 
 /** Per-follower replication controller */
@@ -73,6 +77,11 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
   private RaftMember member;
 
   private volatile boolean isClosing = false;
+
+  private DbLong entryPosition = new DbLong();
+  private DbLong blockAddress = new DbLong();
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private DirectBuffer valueViewBuffer = new UnsafeBuffer();
 
   public MemberReplicateLogController(
       Raft raft, RaftMember member, ClientTransport clientTransport) {
@@ -251,7 +260,8 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
         setPreviousEvent(previousEvent);
       } else {
         final LogBlockIndex logBlockIndex = logStream.getLogBlockIndex();
-        final long blockPosition = logBlockIndex.lookupBlockPosition(eventPosition);
+        entryPosition.wrapLong(eventPosition);
+        final long blockPosition = logBlockIndex.lookupBlockPosition(entryPosition, blockAddress);
 
         if (blockPosition > 0) {
           reader.seek(blockPosition);

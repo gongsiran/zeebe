@@ -20,6 +20,7 @@ import static io.zeebe.logstreams.log.LogStreamUtil.INVALID_ADDRESS;
 import static io.zeebe.logstreams.spi.LogStorage.OP_RESULT_INSUFFICIENT_BUFFER_CAPACITY;
 import static io.zeebe.logstreams.spi.LogStorage.OP_RESULT_INVALID_ADDR;
 
+import io.zeebe.db.impl.DbLong;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.spi.LogStorage;
 import io.zeebe.util.allocation.AllocatedBuffer;
@@ -32,6 +33,8 @@ import io.zeebe.util.sched.channel.ActorConditions;
 import io.zeebe.util.sched.future.ActorFuture;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.Position;
 import org.slf4j.Logger;
@@ -94,6 +97,12 @@ public class LogBlockIndexWriter extends Actor {
 
   private Metric snapshotsCreated;
 
+  private DbLong blockPosition = new DbLong();
+  private DbLong blockAddress = new DbLong();
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
+  private DirectBuffer valueViewBuffer = new UnsafeBuffer();
+
   public LogBlockIndexWriter(
       String name,
       LogStreamBuilder builder,
@@ -142,7 +151,9 @@ public class LogBlockIndexWriter extends Actor {
       blockIndex.openDb();
 
       final long snapshotPosition = blockIndex.getLastPosition();
-      final long snapshotBlockAddress = blockIndex.lookupBlockAddress(snapshotPosition);
+      blockPosition.wrapLong(snapshotPosition);
+      final long snapshotBlockAddress =
+          blockIndex.lookupBlockAddress(blockPosition, blockAddress, keyBuffer, valueViewBuffer);
 
       if (snapshotBlockAddress >= logStorage.getFirstBlockAddress()) {
         nextAddress = snapshotBlockAddress;
@@ -238,7 +249,10 @@ public class LogBlockIndexWriter extends Actor {
             currentBlockEventPosition,
             currentBlockAddress);
 
-        blockIndex.addBlock(currentBlockEventPosition, currentBlockAddress);
+        blockPosition.wrapLong(currentBlockEventPosition);
+        blockAddress.wrapLong(currentBlockAddress);
+
+        blockIndex.addBlock(blockPosition, blockAddress, keyBuffer, valueBuffer);
 
         lastBlockAddress = currentBlockAddress;
         lastBlockEventPosition = currentBlockEventPosition;

@@ -17,6 +17,8 @@ package io.zeebe.db;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 
 /**
  * Represents an column family, where it is possible to store keys of type {@link KeyType} and
@@ -35,6 +37,13 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   void put(KeyType key, ValueType value);
 
+  //  TODO: write docs
+  void put(
+      KeyType key,
+      ValueType value,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer);
+
   /**
    * The corresponding stored value in the column family to the given key.
    *
@@ -42,6 +51,10 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * @return if the key was found in the column family then the value, otherwise null
    */
   ValueType get(KeyType key);
+
+  // TODO: write documentation
+  ValueType get(
+      KeyType key, ValueType value, ExpandableArrayBuffer keyBuffer, DirectBuffer valueViewBuffer);
 
   /**
    * Visits the values, which are stored in the column family. The ordering depends on the key.
@@ -76,6 +89,9 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * @param visitor the visitor which visits the key-value pairs
    */
   void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor);
+
+  //  TODO: write docs
+  void whileTrue(KeyValuePairVisitor visitor, KeyType key, ValueType value);
 
   /**
    * Visits the key-value pairs, which are stored in the column family and which have the same
@@ -116,6 +132,9 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    * @return true if the key exist in this column family, false otherwise
    */
   boolean exists(KeyType key);
+
+  // TODO: write docs
+  boolean exists(DbKey key, ExpandableArrayBuffer keyBuffer, DirectBuffer valueViewBuffer);
 
   /**
    * Checks if the column family has any entry.

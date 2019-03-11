@@ -18,12 +18,14 @@ package io.zeebe.logstreams.log;
 import static io.zeebe.logstreams.impl.LogEntryDescriptor.getFragmentLength;
 import static io.zeebe.logstreams.impl.LogEntryDescriptor.getPosition;
 
+import io.zeebe.db.impl.DbLong;
 import io.zeebe.dispatcher.impl.log.DataFrameDescriptor;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.spi.LogStorage;
 import java.nio.ByteBuffer;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 /** Represents a class which contains some utilities for the log stream. */
@@ -60,6 +62,11 @@ public class LogStreamUtil {
     protected long nextReadAddress = INVALID_ADDRESS;
     protected long currentAddress = INVALID_ADDRESS;
 
+    private DbLong entryPosition = new DbLong();
+    private DbLong blockAddress = new DbLong();
+    private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+    private DirectBuffer valueViewBuffer = new UnsafeBuffer();
+
     private LogEntryAddressSupplier() {
       buffer.wrap(ioBuffer);
     }
@@ -88,7 +95,9 @@ public class LogStreamUtil {
 
     private boolean findStartAddress(long position) {
       if (!blockIndex.isEmpty()) {
-        nextReadAddress = blockIndex.lookupBlockAddress(position);
+        entryPosition.wrapLong(position);
+        nextReadAddress =
+            blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer);
       } else {
         // fallback: get first block address
         nextReadAddress = logStorage.getFirstBlockAddress();

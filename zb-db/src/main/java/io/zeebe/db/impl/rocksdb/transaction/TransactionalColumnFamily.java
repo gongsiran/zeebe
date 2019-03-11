@@ -22,6 +22,7 @@ import io.zeebe.db.KeyValuePairVisitor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 
 class TransactionalColumnFamily<
         ColumnFamilyNames extends Enum<ColumnFamilyNames>,
@@ -52,7 +53,16 @@ class TransactionalColumnFamily<
   }
 
   @Override
-  public ValueType get(KeyType key) {
+  public void put(
+      KeyType key,
+      ValueType value,
+      ExpandableArrayBuffer keyBuffer,
+      ExpandableArrayBuffer valueBuffer) {
+    transactionDb.put(handle, key, value, keyBuffer, valueBuffer);
+  }
+
+  @Override
+  public ValueType get(DbKey key) {
     final DirectBuffer valueBuffer = transactionDb.get(handle, key);
     if (valueBuffer != null) {
       valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity());
@@ -62,27 +72,43 @@ class TransactionalColumnFamily<
   }
 
   @Override
-  public void forEach(Consumer<ValueType> consumer) {
+  public ValueType get(
+      KeyType key, ValueType value, ExpandableArrayBuffer keyBuffer, DirectBuffer valueViewBuffer) {
+    final DirectBuffer valueBuffer = transactionDb.get(handle, key, keyBuffer, valueViewBuffer);
+    if (valueBuffer != null) {
+      value.wrap(valueBuffer, 0, valueBuffer.capacity());
+      return value;
+    }
+    return null;
+  }
+
+  @Override
+  public void forEach(Consumer consumer) {
     transactionDb.foreach(handle, valueInstance, consumer);
   }
 
   @Override
-  public void forEach(BiConsumer<KeyType, ValueType> consumer) {
+  public void forEach(BiConsumer consumer) {
     transactionDb.foreach(handle, keyInstance, valueInstance, consumer);
   }
 
   @Override
-  public void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor) {
+  public void whileTrue(KeyValuePairVisitor visitor) {
     transactionDb.whileTrue(handle, keyInstance, valueInstance, visitor);
   }
 
   @Override
-  public void whileEqualPrefix(DbKey keyPrefix, BiConsumer<KeyType, ValueType> visitor) {
+  public void whileTrue(KeyValuePairVisitor visitor, KeyType key, ValueType value) {
+    transactionDb.whileTrue(handle, keyInstance, valueInstance, visitor);
+  }
+
+  @Override
+  public void whileEqualPrefix(DbKey keyPrefix, BiConsumer visitor) {
     transactionDb.whileEqualPrefix(handle, keyPrefix, keyInstance, valueInstance, visitor);
   }
 
   @Override
-  public void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor) {
+  public void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor visitor) {
     transactionDb.whileEqualPrefix(handle, keyPrefix, keyInstance, valueInstance, visitor);
   }
 
@@ -92,8 +118,13 @@ class TransactionalColumnFamily<
   }
 
   @Override
-  public boolean exists(KeyType key) {
+  public boolean exists(DbKey key) {
     return transactionDb.exists(handle, key);
+  }
+
+  @Override
+  public boolean exists(DbKey key, ExpandableArrayBuffer keyBuffer, DirectBuffer valueViewBuffer) {
+    return transactionDb.exists(handle, key, keyBuffer, valueViewBuffer);
   }
 
   @Override

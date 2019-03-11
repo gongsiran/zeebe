@@ -18,10 +18,14 @@ package io.zeebe.logstreams.log;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.db.ZeebeDbFactory;
+import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.state.StateStorage;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -35,6 +39,11 @@ public class LogBlockIndexTest {
   public static final int ENTRY_OFFSET = 5;
 
   private LogBlockIndex blockIndex;
+  private DbLong entryPosition = new DbLong();
+  private DbLong blockAddress = new DbLong();
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
+  private DirectBuffer valueViewBuffer = new UnsafeBuffer();
 
   @Rule public ExpectedException exception = ExpectedException.none();
   @Rule public TemporaryFolder runtimeDirectory = new TemporaryFolder();
@@ -88,54 +97,76 @@ public class LogBlockIndexTest {
   @Test
   public void shouldNotAddBlockWithEqualPos() {
     // given
-    blockIndex.addBlock(10, 0);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(0);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
 
     // then
     exception.expect(IllegalArgumentException.class);
     exception.expectMessage("Illegal value for position");
 
     // when
-    blockIndex.addBlock(10, 0);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
   }
 
   @Test
   public void shouldNotAddBlockWithSmallerPos() {
     // given
-    blockIndex.addBlock(10, 0);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(0);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
 
     // then
     exception.expect(IllegalArgumentException.class);
     exception.expectMessage("Illegal value for position");
 
     // when
-    blockIndex.addBlock(9, 0);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(0);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
   }
 
   @Test
   public void shouldReturnMinusOneForEmptyBlockIndex() {
-    assertThat(blockIndex.lookupBlockAddress(-1)).isEqualTo(-1);
-    assertThat(blockIndex.lookupBlockAddress(1)).isEqualTo(-1);
+    entryPosition.wrapLong(-1);
+    assertThat(
+            blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer))
+        .isEqualTo(-1);
+    entryPosition.wrapLong(1);
+    assertThat(
+            blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer))
+        .isEqualTo(-1);
   }
 
   @Test
   public void shouldNotReturnFirstBlockAddress() {
     // given
-    blockIndex.addBlock(10, 1000);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(1000);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
 
     // then
     for (int i = 0; i < 10; i++) {
-      assertThat(blockIndex.lookupBlockAddress(i)).isEqualTo(-1);
+      entryPosition.wrapLong(i);
+      assertThat(
+              blockIndex.lookupBlockAddress(
+                  entryPosition, blockAddress, keyBuffer, valueViewBuffer))
+          .isEqualTo(-1);
     }
   }
 
   @Test
   public void shouldReturnFirstBlockAddress() {
     // given
-    blockIndex.addBlock(10, 1000);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(1000);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
 
     // then
     for (int i = 10; i < 100; i++) {
-      assertThat(blockIndex.lookupBlockAddress(i)).isEqualTo(1000);
+      entryPosition.wrapLong(i);
+      assertThat(blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer))
+          .isEqualTo(1000);
     }
   }
 
@@ -149,7 +180,9 @@ public class LogBlockIndexTest {
       final int pos = (i + 1) * 10;
       final int addr = (i + 1) * 100;
 
-      blockIndex.addBlock(pos, addr);
+      entryPosition.wrapLong(pos);
+      blockAddress.wrapLong(addr);
+      blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
     }
 
     // then
@@ -159,8 +192,10 @@ public class LogBlockIndexTest {
 
       for (int j = 0; j < 10; j++) {
         final int pos = ((i + 1) * 10) + j;
-
-        assertThat(blockIndex.lookupBlockAddress(pos)).isEqualTo(expectedAddr);
+        entryPosition.wrapLong(pos);
+        assertThat(
+                blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer))
+            .isEqualTo(expectedAddr);
       }
     }
   }
@@ -168,22 +203,28 @@ public class LogBlockIndexTest {
   @Test
   public void shouldNotReturnFirstBlockPosition() {
     // given
-    blockIndex.addBlock(10, 1000);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(1000);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
 
     // then
     for (int i = 0; i < 10; i++) {
-      assertThat(blockIndex.lookupBlockPosition(i)).isEqualTo(-1);
+      entryPosition.wrapLong(i);
+      assertThat(blockIndex.lookupBlockPosition(entryPosition, blockAddress)).isEqualTo(-1);
     }
   }
 
   @Test
   public void shouldReturnFirstBlockPosition() {
     // given
-    blockIndex.addBlock(10, 1000);
+    entryPosition.wrapLong(10);
+    blockAddress.wrapLong(1000);
+    blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
 
     // then
     for (int i = 10; i < 100; i++) {
-      assertThat(blockIndex.lookupBlockPosition(i)).isEqualTo(10);
+      entryPosition.wrapLong(i);
+      assertThat(blockIndex.lookupBlockPosition(entryPosition, blockAddress)).isEqualTo(10);
     }
   }
 
@@ -194,21 +235,25 @@ public class LogBlockIndexTest {
     // given
 
     for (int i = 0; i < capacity; i++) {
-      final int pos = (i + 1) * 10;
-      final int addr = (i + 1) * 100;
+      final int position = (i + 1) * 10;
+      final int address = (i + 1) * 100;
 
-      blockIndex.addBlock(pos, addr);
+      entryPosition.wrapLong(position);
+      blockAddress.wrapLong(address);
+      blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
     }
 
     // then
 
     for (int i = 0; i < capacity; i++) {
-      final int expectedPos = (i + 1) * 10;
+      final int expectedPosition = (i + 1) * 10;
 
       for (int j = 0; j < 10; j++) {
-        final int pos = ((i + 1) * 10) + j;
+        final int position = ((i + 1) * 10) + j;
 
-        assertThat(blockIndex.lookupBlockPosition(pos)).isEqualTo(expectedPos);
+        entryPosition.wrapLong(position);
+        assertThat(blockIndex.lookupBlockPosition(entryPosition, blockAddress))
+            .isEqualTo(expectedPosition);
       }
     }
   }
@@ -234,7 +279,9 @@ public class LogBlockIndexTest {
   private long addBlocks(int numBlocks) {
     for (int blockPos = 0; blockPos < numBlocks * ENTRY_OFFSET; blockPos += ENTRY_OFFSET) {
       final int address = blockPos * ADDRESS_MULTIPLIER;
-      blockIndex.addBlock(blockPos, address);
+      entryPosition.wrapLong(blockPos);
+      blockAddress.wrapLong(address);
+      blockIndex.addBlock(entryPosition, blockAddress, keyBuffer, valueBuffer);
     }
 
     return (numBlocks - 1) * ENTRY_OFFSET;
@@ -245,8 +292,12 @@ public class LogBlockIndexTest {
       final int address = blockPos * ADDRESS_MULTIPLIER;
 
       for (int entryPos = blockPos; entryPos < blockPos + ENTRY_OFFSET; entryPos++) {
-        assertThat(blockIndex.lookupBlockPosition(entryPos)).isEqualTo(blockPos);
-        assertThat(blockIndex.lookupBlockAddress(entryPos)).isEqualTo(address);
+        entryPosition.wrapLong(entryPos);
+        assertThat(blockIndex.lookupBlockPosition(entryPosition, blockAddress)).isEqualTo(blockPos);
+        assertThat(
+                blockIndex.lookupBlockAddress(
+                    entryPosition, blockAddress, valueBuffer, valueViewBuffer))
+            .isEqualTo(address);
       }
     }
   }

@@ -19,6 +19,7 @@ import static io.zeebe.test.util.TestUtil.waitUntil;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
+import io.zeebe.db.impl.DbLong;
 import io.zeebe.dispatcher.impl.log.DataFrameDescriptor;
 import io.zeebe.logstreams.impl.LogBlockIndexWriter;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
@@ -31,6 +32,7 @@ import io.zeebe.util.metrics.Metric;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -68,6 +70,11 @@ public class LogBlockIndexWriterTest {
   private LogBlockIndex blockIndex;
   private LogStorage logStorage;
   private StateStorage stateStorage;
+  private DbLong entryPosition = new DbLong();
+  private DbLong blockAddress = new DbLong();
+  private ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
+  private ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
+  private DirectBuffer valueViewBuffer = new UnsafeBuffer();
 
   @Before
   public void setup() {
@@ -101,7 +108,9 @@ public class LogBlockIndexWriterTest {
 
     // then
     final long indexPosition = blockIndex.getLastPosition();
-    final long indexAddress = blockIndex.lookupBlockAddress(indexPosition);
+    entryPosition.wrapLong(indexPosition);
+    final long indexAddress =
+        blockIndex.lookupBlockAddress(entryPosition, blockAddress, keyBuffer, valueViewBuffer);
 
     assertThat(indexPosition).isEqualTo(firstEventPosition);
     assertThat(readEventAtAddress(indexAddress)).isEqualTo(EVENT_1);
@@ -278,8 +287,14 @@ public class LogBlockIndexWriterTest {
       long expectedBlockPosition,
       long lastEventPosition,
       DirectBuffer event) {
-    assertThat(newIndex.lookupBlockPosition(lastEventPosition)).isEqualTo(expectedBlockPosition);
-    assertThat(readEventAtAddress(newIndex.lookupBlockAddress(lastEventPosition))).isEqualTo(event);
+    entryPosition.wrapLong(lastEventPosition);
+    assertThat(newIndex.lookupBlockPosition(entryPosition, blockAddress))
+        .isEqualTo(expectedBlockPosition);
+    assertThat(
+            readEventAtAddress(
+                newIndex.lookupBlockAddress(
+                    entryPosition, blockAddress, keyBuffer, valueViewBuffer)))
+        .isEqualTo(event);
   }
 
   private UnsafeBuffer readEventAtAddress(final long indexAddress) {
