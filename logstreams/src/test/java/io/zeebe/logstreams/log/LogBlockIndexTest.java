@@ -18,7 +18,6 @@ package io.zeebe.logstreams.log;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.db.ZeebeDbFactory;
-import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;

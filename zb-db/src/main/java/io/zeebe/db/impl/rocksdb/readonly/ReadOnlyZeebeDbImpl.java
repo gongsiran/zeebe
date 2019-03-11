@@ -184,12 +184,13 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
     }
   }
 
-  protected boolean exists(long columnFamilyHandle, DbKey key) {
-    key.write(keyBuffer, 0);
+  protected boolean exists(long columnFamilyHandle, DbKey key, ExpandableArrayBuffer keyBuffer) {
+    // TODO: pass buffers into exists as well
+    key.write(this.keyBuffer, 0);
 
     if (!keyMayExist(
         nativeHandle_,
-        keyBuffer.byteArray(),
+        this.keyBuffer.byteArray(),
         0,
         key.getLength(),
         columnFamilyHandle,
@@ -203,7 +204,7 @@ public class ReadOnlyZeebeDbImpl<ColumnFamilyNames extends Enum<ColumnFamilyName
       final int readBytes =
           get(
               nativeHandle_,
-              keyBuffer.byteArray(),
+              this.keyBuffer.byteArray(),
               0,
               key.getLength(),
               valueBuffer.byteArray(),

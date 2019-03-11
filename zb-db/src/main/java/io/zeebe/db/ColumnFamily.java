@@ -106,7 +106,6 @@ public interface ColumnFamily<KeyType extends DbKey, ValueType extends DbValue> 
    */
   void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor);
 
-
   /**
    * Checks if the column family has any entry.
    *

@@ -21,7 +21,6 @@ import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.DbKey;
 import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
-import io.zeebe.db.ReadOnlyColumnFamily;
 import io.zeebe.db.TransactionOperation;
 import io.zeebe.db.ZeebeDb;
 import java.io.File;
@@ -130,7 +129,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   @Override
   public <KeyType extends DbKey, ValueType extends DbValue>
-  ColumnFamily<KeyType, ValueType> createColumnFamily(
+      ColumnFamily<KeyType, ValueType> createColumnFamily(
           ColumnFamilyNames columnFamily, KeyType keyInstance, ValueType valueInstance) {
     return new TransactionalColumnFamily<>(this, columnFamily, keyInstance, valueInstance);
   }

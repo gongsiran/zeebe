@@ -44,7 +44,8 @@ public class ReadOnlyLogBlockIndex {
   protected ColumnFamily<DbLong, DbLong> blockPositionToAddress;
   protected final DbLong blockPosition = new DbLong();
   protected final DbLong blockAddress = new DbLong();
-  private final ConcurrentLinkedQueue<DbLong> requestBuffers = new ConcurrentLinkedQueue();
+  private final ConcurrentLinkedQueue<ReusableKeyInstance> reusableKeyInstances =
+      new ConcurrentLinkedQueue();
 
   public ReadOnlyLogBlockIndex() {}
 
@@ -72,22 +73,18 @@ public class ReadOnlyLogBlockIndex {
    *     virtual position
    */
   public long lookupBlockAddress(final long entryPosition) {
-    DbLong keyInstance = requestBuffers.poll(); // TODO: refactor this and ReadOnlyRequestBuffers
-    if (keyInstance == null) {
-      keyInstance = new DbLong();
+    try (final ReusableKeyInstance reusableKey = getReusableKeyInstance()) {
+      final long blockPosition = lookupBlockPosition(entryPosition);
+      if (blockPosition == -1) {
+        return -1;
+      }
+
+      reusableKey.getKeyInstance().wrapLong(blockPosition);
+      final DbLong address = blockPositionToAddress.get(reusableKey.getKeyInstance());
+      final long blockAddress = address != null ? address.getValue() : -1;
+
+      return blockAddress;
     }
-
-    final long blockPosition = lookupBlockPosition(entryPosition);
-    if (blockPosition == -1) {
-      return -1;
-    }
-
-    keyInstance.wrapLong(blockPosition);
-    final DbLong address = blockPositionToAddress.get(keyInstance);
-    final long blockAddress = address != null ? address.getValue() : -1;
-
-    requestBuffers.offer(keyInstance);
-    return blockAddress;
   }
 
   /**
@@ -118,5 +115,28 @@ public class ReadOnlyLogBlockIndex {
 
   public boolean isEmpty() {
     return blockPositionToAddress.isEmpty();
+  }
+
+  public ReusableKeyInstance getReusableKeyInstance() {
+    final ReusableKeyInstance keyInstance = reusableKeyInstances.poll();
+    return keyInstance != null ? keyInstance : new ReusableKeyInstance(reusableKeyInstances);
+  }
+
+  private class ReusableKeyInstance implements AutoCloseable {
+    private final ConcurrentLinkedQueue instancePool;
+    private final DbLong keyInstance = new DbLong();
+
+    ReusableKeyInstance(ConcurrentLinkedQueue instancePool) {
+      this.instancePool = instancePool;
+    }
+
+    public DbLong getKeyInstance() {
+      return keyInstance;
+    }
+
+    @Override
+    public void close() {
+      instancePool.offer(this);
+    }
   }
 }

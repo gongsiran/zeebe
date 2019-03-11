@@ -29,9 +29,6 @@ class TransactionalColumnFamily<
         ValueType extends DbValue>
     implements ColumnFamily<KeyType, ValueType> {
 
-  private static final String NO_BUFFER_MESSAGE =
-      "TransactionalColumnFamily doesn't support passing key/value buffers";
-
   private final ZeebeTransactionDb<ColumnFamilyNames> transactionDb;
   private final long handle;
 

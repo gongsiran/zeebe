@@ -30,9 +30,11 @@ class ReadOnlyZeebeColumnFamilyImpl<
         ValueType extends DbValue>
     implements ColumnFamily<KeyType, ValueType> {
 
+  private static final String UNSUPPORTED_MESSAGE =
+      "Read-only column family doesn't support this operation";
   private final long columnFamilyHandle;
   private final ReadOnlyZeebeDbImpl<ColumnFamilyNames> zeebeDb;
-  private final ConcurrentLinkedQueue<ReadOnlyRequestBuffers> requestBuffers =
+  private final ConcurrentLinkedQueue<ZeebeDbReusableBuffers> reusableBuffers =
       new ConcurrentLinkedQueue();
 
   ReadOnlyZeebeColumnFamilyImpl(
@@ -46,14 +48,15 @@ class ReadOnlyZeebeColumnFamilyImpl<
 
   @Override
   public ValueType get(KeyType key) {
-    try (final ReadOnlyRequestBuffers buffers = getRequestBuffers()) {
-      buffers.key.wrapLong(((DbLong) key).getValue());
+    try (final ZeebeDbReusableBuffers buffers = getReusableBuffers()) {
+      buffers.getKey().wrapLong(((DbLong) key).getValue());
 
-      zeebeDb.get(columnFamilyHandle, buffers.key, buffers.keyBuffer, buffers.valueBuffer);
+      zeebeDb.get(
+          columnFamilyHandle, buffers.getKey(), buffers.getKeyBuffer(), buffers.getValueBuffer());
 
-      if (buffers.value != null) {
-        buffers.value.wrap(buffers.valueBuffer, 0, buffers.valueBuffer.capacity());
-        return (ValueType) buffers.value;
+      if (buffers.getValue() != null) {
+        buffers.getValue().wrap(buffers.getValueBuffer(), 0, buffers.getValueBuffer().capacity());
+        return (ValueType) buffers.getValue();
       }
       return null;
     }
@@ -61,14 +64,14 @@ class ReadOnlyZeebeColumnFamilyImpl<
 
   @Override
   public void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    try (final ReadOnlyRequestBuffers buffers = getRequestBuffers()) {
+    try (final ZeebeDbReusableBuffers buffers = getReusableBuffers()) {
       zeebeDb.whileTrue(
           columnFamilyHandle,
-          (KeyType) buffers.key,
-          (ValueType) buffers.value,
+          (KeyType) buffers.getKey(),
+          (ValueType) buffers.getValue(),
           visitor,
-          buffers.keyBuffer,
-          buffers.valueBuffer);
+          buffers.getKeyBuffer(),
+          buffers.getValueBuffer());
     }
   }
 
@@ -79,48 +82,48 @@ class ReadOnlyZeebeColumnFamilyImpl<
 
   @Override
   public boolean exists(KeyType key) {
-    try (final ReadOnlyRequestBuffers buffers = getRequestBuffers()) {
-      buffers.key.wrapLong(((DbLong) key).getValue());
-      return zeebeDb.exists(columnFamilyHandle, buffers.key);
+    try (final ZeebeDbReusableBuffers buffers = getReusableBuffers()) {
+      buffers.getKey().wrapLong(((DbLong) key).getValue());
+      return zeebeDb.exists(columnFamilyHandle, buffers.getKey(), buffers.getKeyBuffer());
     }
   }
 
   @Override
   public void forEach(Consumer<ValueType> consumer) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
   }
 
   @Override
   public void forEach(BiConsumer<KeyType, ValueType> consumer) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
   }
 
   @Override
   public void put(KeyType key, ValueType value) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
   }
 
   @Override
   public void delete(KeyType key) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
   }
 
   @Override
   public void whileEqualPrefix(DbKey keyPrefix, BiConsumer<KeyType, ValueType> visitor) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
   }
 
   @Override
   public void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
   }
 
   // TODO: refactor request buffers to contain the logic
-  private ReadOnlyRequestBuffers getRequestBuffers() {
-    ReadOnlyRequestBuffers buffers = requestBuffers.poll();
+  private ZeebeDbReusableBuffers getReusableBuffers() {
+    ZeebeDbReusableBuffers buffers = reusableBuffers.poll();
 
     if (buffers == null) {
-      buffers = new ReadOnlyRequestBuffers(requestBuffers);
+      buffers = new ZeebeDbReusableBuffers(reusableBuffers);
     }
 
     return buffers;

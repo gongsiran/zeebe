@@ -15,7 +15,6 @@
  */
 package io.zeebe.db;
 
-import io.zeebe.db.impl.rocksdb.readonly.ReadOnlyZeebeDbImpl;
 import java.io.File;
 
 /**

@@ -28,7 +28,8 @@ import java.io.File;
  *
  * @param <ColumnFamilyType>
  */
-public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extends ReadOnlyZeebeDb<ColumnFamilyType> {
+public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>>
+    extends ReadOnlyZeebeDb<ColumnFamilyType> {
 
   /**
    * Runs the commands like delete, put etc. in a transaction. Access of different column families
