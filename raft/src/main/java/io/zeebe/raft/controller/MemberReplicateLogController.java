@@ -18,7 +18,9 @@ package io.zeebe.raft.controller;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventPositionNullValue;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventTermNullValue;
 
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.LoggedEventImpl;
+import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.LogStream;
@@ -58,6 +60,7 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
 
   private final Raft raft;
   private final LogStream logStream;
+  private final LogBlockIndex logBlockIndex;
   private final Duration heartbeatInterval;
   private final int nodeId;
   private final ClientOutput clientOutput;
@@ -84,6 +87,11 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
     this.heartbeatInterval = raft.getConfiguration().getHeartbeatIntervalDuration();
     this.clientOutput = clientTransport.getOutput();
     this.logStream = raft.getLogStream();
+    this.logBlockIndex =
+        new LogBlockIndex(
+            ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
+            logStream.getStateStorage());
+    this.logBlockIndex.openDb();
     this.reader = new BufferedLogStreamReader(logStream, true);
   }
 
@@ -250,7 +258,6 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
       if (previousEvent != null) {
         setPreviousEvent(previousEvent);
       } else {
-        final LogBlockIndex logBlockIndex = logStream.getLogBlockIndex();
         final long blockPosition = logBlockIndex.lookupBlockPosition(eventPosition);
 
         if (blockPosition > 0) {

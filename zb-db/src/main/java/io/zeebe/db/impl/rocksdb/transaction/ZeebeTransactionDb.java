@@ -54,12 +54,12 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
           final DBOptions options,
           final String path,
           final List<ColumnFamilyDescriptor> columnFamilyDescriptors,
-          final List<AutoCloseable> closables,
+          final List<AutoCloseable> closeables,
           Class<ColumnFamilyNames> columnFamilyTypeClass) {
     final EnumMap<ColumnFamilyNames, Long> columnFamilyMap = new EnumMap<>(columnFamilyTypeClass);
 
     final List<ColumnFamilyHandle> handles = new ArrayList<>();
-    final DbReference optimisticTransactionDB =
+    final DbReference dbReference =
         RocksDbRegistry.open(options, path, columnFamilyDescriptors, handles);
 
     final ColumnFamilyNames[] enumConstants = columnFamilyTypeClass.getEnumConstants();
@@ -68,15 +68,9 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       columnFamilyMap.put(enumConstants[i], getNativeHandle(handles.get(i)));
       handleToEnumMap.put(getNativeHandle(handles.get(i)), handles.get(i));
     }
-
     final ZeebeTransactionDb<ColumnFamilyNames> db =
-        new ZeebeTransactionDb<>(
-            optimisticTransactionDB,
-            columnFamilyMap,
-            handleToEnumMap,
-            closables,
-            columnFamilyTypeClass);
-
+        new ZeebeTransactionDb<ColumnFamilyNames>(
+            dbReference, columnFamilyMap, handleToEnumMap, closeables);
     return db;
   }
 
@@ -91,8 +85,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   private final DbReference reference;
   private ZeebeTransaction currentTransaction;
-  private final List<AutoCloseable> closables;
-  private final Class<ColumnFamilyNames> columnFamilyNamesClass;
+  private final List<AutoCloseable> closeables;
 
   // we can also simply use one buffer
   private final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
@@ -112,13 +105,11 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       DbReference reference,
       EnumMap<ColumnFamilyNames, Long> columnFamilyMap,
       Long2ObjectHashMap<ColumnFamilyHandle> handelToEnumMap,
-      List<AutoCloseable> closables,
-      Class<ColumnFamilyNames> columnFamilyNamesClass) {
+      List<AutoCloseable> closeables) {
     this.reference = reference;
     this.columnFamilyMap = columnFamilyMap;
     this.handelToEnumMap = handelToEnumMap;
-    this.closables = closables;
-    this.columnFamilyNamesClass = columnFamilyNamesClass;
+    this.closeables = closeables;
   }
 
   protected long getColumnFamilyHandle(ColumnFamilyNames columnFamily) {
@@ -411,7 +402,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   @Override
   public void close() {
-    closables.forEach(
+    closeables.forEach(
         closable -> {
           try {
             closable.close();

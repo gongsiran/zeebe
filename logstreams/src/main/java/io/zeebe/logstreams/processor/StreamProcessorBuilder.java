@@ -125,8 +125,7 @@ public class StreamProcessorBuilder {
             .createService(serviceName, service)
             .dependency(LogStreamServiceNames.logStreamServiceName(logName))
             .dependency(LogStreamServiceNames.logWriteBufferServiceName(logName))
-            .dependency(LogStreamServiceNames.logStorageServiceName(logName))
-            .dependency(LogStreamServiceNames.logBlockIndexServiceName(logName));
+            .dependency(LogStreamServiceNames.logStorageServiceName(logName));
 
     if (additionalDependencies != null) {
       additionalDependencies.forEach((d) -> serviceBuilder.dependency(d));
