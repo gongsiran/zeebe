@@ -28,7 +28,6 @@ import io.zeebe.transport.ClientTransportBuilder;
 import io.zeebe.transport.RemoteAddress;
 import io.zeebe.transport.SocketAddress;
 import io.zeebe.transport.Transports;
-import io.zeebe.transport.impl.memory.NonBlockingMemoryPool;
 import io.zeebe.transport.impl.memory.UnboundedMemoryPool;
 import io.zeebe.util.ByteValue;
 import io.zeebe.util.sched.ActorScheduler;
@@ -83,7 +82,8 @@ public class BrokerClientImpl implements BrokerClient {
             .messageReceiveBuffer(dataFrameReceiveBuffer)
             .messageMemoryPool(
                 new UnboundedMemoryPool()) // Client is not sending any heavy messages
-            .requestMemoryPool(new NonBlockingMemoryPool(transportBufferSize))
+            // yolo
+            .requestMemoryPool(new UnboundedMemoryPool())
             .scheduler(actorScheduler);
 
     // internal transport is used for topology request
