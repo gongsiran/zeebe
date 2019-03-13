@@ -19,6 +19,7 @@ import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.DbLong;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.logstreams.spi.SnapshotSupport;
 import io.zeebe.logstreams.state.StateSnapshotController;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LogBlockIndex implements SnapshotSupport {
 
   private final StateSnapshotController stateSnapshotController;
+  private final DbContext dbContext;
   private ColumnFamily<DbLong, DbLong> blockPositionToAddress;
 
   private final DbLong blockPosition = new DbLong();
@@ -57,7 +59,10 @@ public class LogBlockIndex implements SnapshotSupport {
    * @param stateStorage DB runtime and snapshot location
    */
   public LogBlockIndex(
-      ZeebeDbFactory<LogBlockColumnFamilies> dbFactory, StateStorage stateStorage) {
+      DbContext dbContext,
+      ZeebeDbFactory<LogBlockColumnFamilies> dbFactory,
+      StateStorage stateStorage) {
+    this.dbContext = dbContext;
     this.stateSnapshotController = new StateSnapshotController(dbFactory, stateStorage);
   }
 
@@ -67,9 +72,10 @@ public class LogBlockIndex implements SnapshotSupport {
    */
   public void openDb() {
     db = stateSnapshotController.openDb();
+    dbContext.setTransactionProvider(db::getTransaction);
     blockPositionToAddress =
         db.createColumnFamily(
-            LogBlockColumnFamilies.BLOCK_POSITION_ADDRESS, blockPosition, blockAddress);
+            dbContext, LogBlockColumnFamilies.BLOCK_POSITION_ADDRESS, blockPosition, blockAddress);
   }
 
   public void closeDb() throws Exception {

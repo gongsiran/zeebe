@@ -24,6 +24,7 @@ import io.zeebe.db.impl.DbCompositeKey;
 import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
 import io.zeebe.db.impl.DbString;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import org.agrona.DirectBuffer;
 
 public class MessageSubscriptionState {
@@ -52,7 +53,7 @@ public class MessageSubscriptionState {
   private final ColumnFamily<DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong>, DbNil>
       messageNameAndCorrelationKeyColumnFamily;
 
-  public MessageSubscriptionState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  public MessageSubscriptionState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     this.zeebeDb = zeebeDb;
 
     elementInstanceKey = new DbLong();
@@ -61,6 +62,7 @@ public class MessageSubscriptionState {
     elementKeyAndMessageName = new DbCompositeKey<>(elementInstanceKey, messageName);
     subscriptionColumnFamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.MESSAGE_SUBSCRIPTION_BY_KEY,
             elementKeyAndMessageName,
             messageSubscription);
@@ -69,6 +71,7 @@ public class MessageSubscriptionState {
     sentTimeCompositeKey = new DbCompositeKey<>(sentTime, elementKeyAndMessageName);
     sentTimeColumnFamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.MESSAGE_SUBSCRIPTION_BY_SENT_TIME,
             sentTimeCompositeKey,
             DbNil.INSTANCE);
@@ -79,6 +82,7 @@ public class MessageSubscriptionState {
         new DbCompositeKey<>(nameAndCorrelationKey, elementInstanceKey);
     messageNameAndCorrelationKeyColumnFamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.MESSAGE_SUBSCRIPTION_BY_NAME_AND_CORRELATION_KEY,
             nameCorrelationAndElementInstanceKey,
             DbNil.INSTANCE);

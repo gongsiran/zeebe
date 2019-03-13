@@ -101,14 +101,15 @@ public class StreamProcessorReprocessingTest {
   private ActorFuture<StreamProcessorService> openStreamProcessorControllerAsync(
       Runnable runnable) {
     return openStreamProcessorControllerAsync(
-        zeebeDb -> {
-          createStreamProcessor(zeebeDb);
+        (zeebeDb, dbContext) -> {
+          createStreamProcessor(zeebeDb, dbContext);
           runnable.run();
           return streamProcessor;
         });
   }
 
-  private StreamProcessor createStreamProcessor(ZeebeDb zeebeDb) {
+  private StreamProcessor createStreamProcessor(ZeebeDb zeebeDb, DbContext dbContext) {
+    dbContext.setTransactionProvider(zeebeDb::getTransaction);
     final RecordingStreamProcessor recordingProcessor = RecordingStreamProcessor.createSpy(zeebeDb);
     this.streamProcessor = recordingProcessor;
     eventProcessor = recordingProcessor.getEventProcessorSpy();
@@ -426,7 +427,7 @@ public class StreamProcessorReprocessingTest {
             });
 
     // when
-    openStreamProcessorController(zeebeDb -> processor);
+    openStreamProcessorController((zeebeDb, dbContext) -> processor);
 
     // then
     waitUntil(() -> processedRecords.get() == numberOfRecords + 2);
@@ -459,7 +460,7 @@ public class StreamProcessorReprocessingTest {
                 }
               }
             });
-    openStreamProcessorController(zeebeDb -> processor);
+    openStreamProcessorController((zeebeDb, dbContext) -> processor);
 
     // when
     waitUntil(() -> barrier.getNumberWaiting() == 1);

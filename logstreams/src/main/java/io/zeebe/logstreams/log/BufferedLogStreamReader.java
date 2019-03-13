@@ -15,6 +15,7 @@
  */
 package io.zeebe.logstreams.log;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.CompleteEventsInBlockProcessor;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
@@ -92,7 +93,9 @@ public class BufferedLogStreamReader implements LogStreamReader {
     logStream = log;
     logBlockIndex =
         new LogBlockIndex(
-            ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class), log.getStateStorage());
+            new DbContext(),    //
+            ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
+            log.getStateStorage());
     logBlockIndex.openDb();
     wrap(log.getLogStorage(), logBlockIndex, position);
   }

@@ -23,6 +23,7 @@ import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.DbCompositeKey;
 import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import java.util.function.Consumer;
 
 public class TimerInstanceState {
@@ -42,7 +43,7 @@ public class TimerInstanceState {
 
   private long nextDueDate;
 
-  public TimerInstanceState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  public TimerInstanceState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     this.zeebeDb = zeebeDb;
 
     timerInstance = new TimerInstance();
@@ -50,13 +51,14 @@ public class TimerInstanceState {
     elementInstanceKey = new DbLong();
     elementAndTimerKey = new DbCompositeKey<>(elementInstanceKey, timerKey);
     timerInstanceColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.TIMERS, elementAndTimerKey, timerInstance);
+        zeebeDb.createColumnFamily(
+            dbContext, ZbColumnFamilies.TIMERS, elementAndTimerKey, timerInstance);
 
     dueDateKey = new DbLong();
     dueDateCompositeKey = new DbCompositeKey<>(dueDateKey, elementAndTimerKey);
     dueDateColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.TIMER_DUE_DATES, dueDateCompositeKey, DbNil.INSTANCE);
+            dbContext, ZbColumnFamilies.TIMER_DUE_DATES, dueDateCompositeKey, DbNil.INSTANCE);
   }
 
   public void put(TimerInstance timer) {

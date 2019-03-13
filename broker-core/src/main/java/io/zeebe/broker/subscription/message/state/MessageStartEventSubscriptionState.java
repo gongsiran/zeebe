@@ -26,6 +26,7 @@ import io.zeebe.db.impl.DbCompositeKey;
 import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
 import io.zeebe.db.impl.DbString;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import org.agrona.DirectBuffer;
 
 public class MessageStartEventSubscriptionState {
@@ -47,7 +48,8 @@ public class MessageStartEventSubscriptionState {
   private final ColumnFamily<DbCompositeKey<DbLong, DbString>, DbNil>
       subscriptionsOfWorkflowKeyColumnfamily;
 
-  public MessageStartEventSubscriptionState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  public MessageStartEventSubscriptionState(
+      final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     this.zeebeDb = zeebeDb;
 
     messageName = new DbString();
@@ -58,6 +60,7 @@ public class MessageStartEventSubscriptionState {
     subscriptionValue.wrapObject(subscriptionRecord);
     subscriptionsColumnFamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.MESSAGE_START_EVENT_SUBSCRIPTION_BY_NAME_AND_KEY,
             messageNameAndWorkflowKey,
             subscriptionValue);
@@ -65,6 +68,7 @@ public class MessageStartEventSubscriptionState {
     workflowKeyAndMessageName = new DbCompositeKey<>(workflowKey, messageName);
     subscriptionsOfWorkflowKeyColumnfamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.MESSAGE_START_EVENT_SUBSCRIPTION_BY_KEY_AND_NAME,
             workflowKeyAndMessageName,
             DbNil.INSTANCE);

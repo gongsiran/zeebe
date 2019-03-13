@@ -18,6 +18,7 @@ package io.zeebe.logstreams.log;
 import static io.zeebe.logstreams.impl.LogEntryDescriptor.getFragmentLength;
 import static io.zeebe.logstreams.impl.LogEntryDescriptor.getPosition;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.dispatcher.impl.log.DataFrameDescriptor;
 import io.zeebe.logstreams.impl.LogEntryDescriptor;
@@ -70,6 +71,7 @@ public class LogStreamUtil {
       this.logStream = logStream;
       this.blockIndex =
           new LogBlockIndex(
+              new DbContext(),
               ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
               logStream.getStateStorage());
       this.blockIndex.openDb();

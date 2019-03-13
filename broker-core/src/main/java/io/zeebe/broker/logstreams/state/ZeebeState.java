@@ -56,15 +56,15 @@ public class ZeebeState {
 
   public ZeebeState(final int partitionId, final ZeebeDb zeebeDb, final DbContext dbContext) {
     keyState = new KeyState(dbContext, partitionId, zeebeDb);
-    workflowState = new WorkflowState(zeebeDb, keyState);
-    deploymentState = new DeploymentsState(zeebeDb);
-    jobState = new JobState(zeebeDb);
-    messageState = new MessageState(zeebeDb);
-    messageSubscriptionState = new MessageSubscriptionState(zeebeDb);
-    messageStartEventSubscriptionState = new MessageStartEventSubscriptionState(zeebeDb);
-    workflowInstanceSubscriptionState = new WorkflowInstanceSubscriptionState(zeebeDb);
-    incidentState = new IncidentState(zeebeDb);
-    blackList = new BlackList(zeebeDb);
+    workflowState = new WorkflowState(dbContext, zeebeDb, keyState);
+    deploymentState = new DeploymentsState(dbContext, zeebeDb);
+    jobState = new JobState(dbContext, zeebeDb);
+    messageState = new MessageState(dbContext, zeebeDb);
+    messageSubscriptionState = new MessageSubscriptionState(dbContext, zeebeDb);
+    messageStartEventSubscriptionState = new MessageStartEventSubscriptionState(dbContext, zeebeDb);
+    workflowInstanceSubscriptionState = new WorkflowInstanceSubscriptionState(dbContext, zeebeDb);
+    incidentState = new IncidentState(dbContext, zeebeDb);
+    blackList = new BlackList(dbContext, zeebeDb);
   }
 
   public DeploymentsState getDeploymentState() {

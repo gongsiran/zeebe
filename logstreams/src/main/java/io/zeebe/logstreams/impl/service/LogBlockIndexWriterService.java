@@ -15,6 +15,7 @@
  */
 package io.zeebe.logstreams.impl.service;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.LogBlockIndexWriter;
 import io.zeebe.logstreams.impl.LogStreamBuilder;
@@ -43,6 +44,7 @@ public class LogBlockIndexWriterService implements Service<LogBlockIndexWriter> 
     final LogStorage logStorage = logStorageInjector.getValue();
     final LogBlockIndex logBlockIndex =
         new LogBlockIndex(
+            new DbContext(),
             ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
             logStreamBuilder.getStateStorage());
     final ActorScheduler scheduler = startContext.getScheduler();

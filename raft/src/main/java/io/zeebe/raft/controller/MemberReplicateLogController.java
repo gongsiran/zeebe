@@ -18,6 +18,7 @@ package io.zeebe.raft.controller;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventPositionNullValue;
 import static io.zeebe.raft.AppendRequestEncoder.previousEventTermNullValue;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.LoggedEventImpl;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
@@ -89,6 +90,7 @@ public class MemberReplicateLogController extends Actor implements Service<Void>
     this.logStream = raft.getLogStream();
     this.logBlockIndex =
         new LogBlockIndex(
+            new DbContext(),
             ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
             logStream.getStateStorage());
     this.logBlockIndex.openDb();

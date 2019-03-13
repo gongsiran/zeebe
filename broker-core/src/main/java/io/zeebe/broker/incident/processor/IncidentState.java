@@ -22,6 +22,7 @@ import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.DbLong;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.protocol.impl.record.value.incident.IncidentRecord;
 import java.util.function.ObjLongConsumer;
 
@@ -49,7 +50,7 @@ public class IncidentState {
 
   private final ColumnFamily<DbLong, DbLong> jobIncidentColumnFamily;
 
-  public IncidentState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  public IncidentState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     this.zeebeDb = zeebeDb;
 
     incidentKey = new DbLong();
@@ -57,16 +58,20 @@ public class IncidentState {
     incidenRecordToRead.wrapObject(new IncidentRecord());
     incidentRecordToWrite = new UnpackedObjectValue();
     incidentColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.INCIDENTS, incidentKey, incidenRecordToRead);
+        zeebeDb.createColumnFamily(
+            dbContext, ZbColumnFamilies.INCIDENTS, incidentKey, incidenRecordToRead);
 
     elementInstanceKey = new DbLong();
     workflowInstanceIncidentColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.INCIDENT_WORKFLOW_INSTANCES, elementInstanceKey, incidentKey);
+            dbContext,
+            ZbColumnFamilies.INCIDENT_WORKFLOW_INSTANCES,
+            elementInstanceKey,
+            incidentKey);
 
     jobKey = new DbLong();
     jobIncidentColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.INCIDENT_JOBS, jobKey, incidentKey);
+        zeebeDb.createColumnFamily(dbContext, ZbColumnFamilies.INCIDENT_JOBS, jobKey, incidentKey);
   }
 
   public void createIncident(long incidentKey, IncidentRecord incident) {

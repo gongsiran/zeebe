@@ -18,6 +18,7 @@ package io.zeebe.logstreams.log;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.db.ZeebeDbFactory;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
@@ -55,7 +56,7 @@ public class LogBlockIndexTest {
     final StateStorage stateStorage =
         new StateStorage(runtimeDirectory.getRoot(), snapshotDirectory.getRoot());
 
-    blockIndex = new LogBlockIndex(dbFactory, stateStorage);
+    blockIndex = new LogBlockIndex(new DbContext(), dbFactory, stateStorage);
     blockIndex.recoverFromSnapshot();
     blockIndex.openDb();
   }

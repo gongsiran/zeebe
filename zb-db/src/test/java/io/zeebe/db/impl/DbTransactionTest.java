@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,18 +61,21 @@ public class DbTransactionTest {
   public void setup() throws Exception {
     final File pathName = temporaryFolder.newFolder();
     zeebeDb = dbFactory.createDb(pathName);
+    final DbContext dbContext = new DbContext();
+    dbContext.setTransactionProvider(zeebeDb::getTransaction);
 
     oneKey = new DbLong();
     oneValue = new DbLong();
-    oneColumnFamily = zeebeDb.createColumnFamily(ColumnFamilies.ONE, oneKey, oneValue);
+    oneColumnFamily = zeebeDb.createColumnFamily(dbContext, ColumnFamilies.ONE, oneKey, oneValue);
 
     twoKey = new DbLong();
     twoValue = new DbLong();
-    twoColumnFamily = zeebeDb.createColumnFamily(ColumnFamilies.TWO, twoKey, twoValue);
+    twoColumnFamily = zeebeDb.createColumnFamily(dbContext, ColumnFamilies.TWO, twoKey, twoValue);
 
     threeKey = new DbLong();
     threeValue = new DbLong();
-    threeColumnFamily = zeebeDb.createColumnFamily(ColumnFamilies.THREE, threeKey, threeValue);
+    threeColumnFamily =
+        zeebeDb.createColumnFamily(dbContext, ColumnFamilies.THREE, threeKey, threeValue);
   }
 
   @Test

@@ -599,7 +599,7 @@ public class StreamProcessorControllerTest {
             .actorScheduler(logStreamRule.getActorScheduler())
             .serviceContainer(logStreamRule.getServiceContainer())
             .snapshotController(snapshotController)
-            .streamProcessorFactory((zeebeDb -> streamProcessor))
+            .streamProcessorFactory(((zeebeDb, dbContext) -> streamProcessor))
             .readOnly(true)
             .build()
             .join()
@@ -671,10 +671,13 @@ public class StreamProcessorControllerTest {
             .serviceContainer(logStreamRule.getServiceContainer())
             .snapshotController(snapshotController)
             .streamProcessorFactory(
-                (db) -> {
+                (db, dbContext) -> {
+                  dbContext.setTransactionProvider(db::getTransaction);
+
                   streamProcessor = RecordingStreamProcessor.createSpy(db);
                   eventProcessor = streamProcessor.getEventProcessorSpy();
-                  columnFamily = db.createColumnFamily(DefaultColumnFamily.DEFAULT, key, value);
+                  columnFamily =
+                      db.createColumnFamily(dbContext, DefaultColumnFamily.DEFAULT, key, value);
                   return streamProcessor;
                 })
             .snapshotPeriod(SNAPSHOT_INTERVAL)

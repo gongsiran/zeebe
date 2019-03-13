@@ -19,6 +19,7 @@ import static io.zeebe.test.util.TestUtil.waitUntil;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.dispatcher.impl.log.DataFrameDescriptor;
 import io.zeebe.logstreams.impl.LogBlockIndexWriter;
@@ -82,6 +83,7 @@ public class LogBlockIndexWriterTest {
   private LogBlockIndex createBlockIndex() {
     final LogBlockIndex logBlockIndex =
         new LogBlockIndex(
+            new DbContext(),
             ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
             logStreamRule.getLogStream().getStateStorage());
     logBlockIndex.openDb();

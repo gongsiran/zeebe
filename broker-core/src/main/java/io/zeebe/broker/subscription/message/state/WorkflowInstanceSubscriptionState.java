@@ -25,6 +25,7 @@ import io.zeebe.db.impl.DbCompositeKey;
 import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
 import io.zeebe.db.impl.DbString;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import org.agrona.DirectBuffer;
 
 public class WorkflowInstanceSubscriptionState {
@@ -45,7 +46,8 @@ public class WorkflowInstanceSubscriptionState {
   private final ColumnFamily<DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbString>>, DbNil>
       sentTimeColumnFamily;
 
-  public WorkflowInstanceSubscriptionState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  public WorkflowInstanceSubscriptionState(
+      final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     elementInstanceKey = new DbLong();
     messageName = new DbString();
     elementKeyAndMessageName = new DbCompositeKey<>(elementInstanceKey, messageName);
@@ -53,6 +55,7 @@ public class WorkflowInstanceSubscriptionState {
 
     subscriptionColumnFamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.WORKFLOW_SUBSCRIPTION_BY_KEY,
             elementKeyAndMessageName,
             workflowInstanceSubscription);
@@ -61,6 +64,7 @@ public class WorkflowInstanceSubscriptionState {
     sentTimeCompositeKey = new DbCompositeKey<>(sentTime, elementKeyAndMessageName);
     sentTimeColumnFamily =
         zeebeDb.createColumnFamily(
+            dbContext,
             ZbColumnFamilies.WORKFLOW_SUBSCRIPTION_BY_SENT_TIME,
             sentTimeCompositeKey,
             DbNil.INSTANCE);

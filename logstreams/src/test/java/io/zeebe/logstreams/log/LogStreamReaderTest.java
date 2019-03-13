@@ -22,6 +22,7 @@ import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
@@ -426,6 +427,7 @@ public class LogStreamReaderTest {
     // when
     final LogBlockIndex logBlockIndex =
         new LogBlockIndex(
+            new DbContext(),
             ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
             logStream.getStateStorage());
     logBlockIndex.openDb();

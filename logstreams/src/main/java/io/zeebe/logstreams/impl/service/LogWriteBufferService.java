@@ -15,6 +15,7 @@
  */
 package io.zeebe.logstreams.impl.service;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.dispatcher.Dispatcher;
 import io.zeebe.dispatcher.DispatcherBuilder;
@@ -68,7 +69,9 @@ public class LogWriteBufferService implements Service<Dispatcher> {
     try (BufferedLogStreamReader logReader = new BufferedLogStreamReader(true)) {
       final LogBlockIndex logBlockIndex =
           new LogBlockIndex(
-              ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class), stateStorage);
+              new DbContext(),
+              ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
+              stateStorage);
       logBlockIndex.openDb();
       logReader.wrap(logStorage, logBlockIndex);
 

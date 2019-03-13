@@ -26,6 +26,7 @@ import io.zeebe.db.impl.DbCompositeKey;
 import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
 import io.zeebe.db.impl.DbString;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.protocol.impl.record.value.job.JobRecord;
 import io.zeebe.util.EnsureUtil;
 import java.util.function.BiFunction;
@@ -57,27 +58,30 @@ public class JobState {
   private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil> deadlinesColumnFamily;
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
 
-  public JobState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  public JobState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     jobRecordToRead = new UnpackedObjectValue();
     jobRecordToRead.wrapObject(new JobRecord());
 
     jobRecordToWrite = new UnpackedObjectValue();
     jobKey = new DbLong();
-    jobsColumnFamily = zeebeDb.createColumnFamily(ZbColumnFamilies.JOBS, jobKey, jobRecordToRead);
+    jobsColumnFamily =
+        zeebeDb.createColumnFamily(dbContext, ZbColumnFamilies.JOBS, jobKey, jobRecordToRead);
 
     jobState = new DbByte();
     statesJobColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.JOB_STATES, jobKey, jobState);
+        zeebeDb.createColumnFamily(dbContext, ZbColumnFamilies.JOB_STATES, jobKey, jobState);
 
     jobTypeKey = new DbString();
     typeJobKey = new DbCompositeKey<>(jobTypeKey, jobKey);
     activatableColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.JOB_ACTIVATABLE, typeJobKey, DbNil.INSTANCE);
+        zeebeDb.createColumnFamily(
+            dbContext, ZbColumnFamilies.JOB_ACTIVATABLE, typeJobKey, DbNil.INSTANCE);
 
     deadlineKey = new DbLong();
     deadlineJobKey = new DbCompositeKey<>(deadlineKey, jobKey);
     deadlinesColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.JOB_DEADLINES, deadlineJobKey, DbNil.INSTANCE);
+        zeebeDb.createColumnFamily(
+            dbContext, ZbColumnFamilies.JOB_DEADLINES, deadlineJobKey, DbNil.INSTANCE);
 
     this.zeebeDb = zeebeDb;
   }

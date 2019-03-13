@@ -107,7 +107,6 @@ public class StreamProcessorController extends Actor {
     this.isReadOnlyProcessor = context.isReadOnlyProcessor();
 
     this.dbContext = context.getDbContext();
-    context.getDbContext().setTransactionProvider(zeebeDb::getTransaction);
   }
 
   @Override
@@ -142,6 +141,8 @@ public class StreamProcessorController extends Actor {
       lastSourceEventPosition = seekFromSnapshotPositionToLastSourceEvent();
 
       zeebeDb = snapshotController.openDb();
+
+      dbContext.setTransactionProvider(zeebeDb::getTransaction);
       streamProcessor = streamProcessorFactory.createProcessor(zeebeDb, dbContext);
       streamProcessor.onOpen(streamProcessorContext);
     } catch (final Exception e) {

@@ -49,6 +49,9 @@ public interface SnapshotController extends AutoCloseable {
 
   ZeebeDb openDb();
 
+  // TODO: write docs
+  ZeebeDb getDb();
+
   /**
    * Purges all snapshots which return true for the given matcher.
    *

@@ -101,6 +101,11 @@ public class StateSnapshotController implements SnapshotController {
   }
 
   @Override
+  public ZeebeDb getDb() {
+    return db;
+  }
+
+  @Override
   public void purgeAll(Predicate<StateSnapshotMetadata> matcher) throws Exception {
     final List<StateSnapshotMetadata> others = storage.list(matcher);
 

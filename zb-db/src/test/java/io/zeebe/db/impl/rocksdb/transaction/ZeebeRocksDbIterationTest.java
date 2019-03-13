@@ -22,6 +22,7 @@ import io.zeebe.db.impl.DbLong;
 import io.zeebe.db.impl.DbNil;
 import io.zeebe.db.impl.DefaultColumnFamily;
 import io.zeebe.db.impl.DefaultZeebeDbFactory;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
@@ -44,6 +45,7 @@ public class ZeebeRocksDbIterationTest {
   private DbLong firstKey;
   private DbLong secondKey;
   private DbCompositeKey<DbLong, DbLong> compositeKey;
+  private DbContext dbContext;
 
   @Before
   public void setup() throws Exception {
@@ -53,8 +55,11 @@ public class ZeebeRocksDbIterationTest {
     firstKey = new DbLong();
     secondKey = new DbLong();
     compositeKey = new DbCompositeKey<>(firstKey, secondKey);
+    dbContext = new DbContext();
+    dbContext.setTransactionProvider(zeebeDb::getTransaction);
     columnFamily =
-        zeebeDb.createColumnFamily(DefaultColumnFamily.DEFAULT, compositeKey, DbNil.INSTANCE);
+        zeebeDb.createColumnFamily(
+            dbContext, DefaultColumnFamily.DEFAULT, compositeKey, DbNil.INSTANCE);
   }
 
   @Test
@@ -68,7 +73,7 @@ public class ZeebeRocksDbIterationTest {
               return spy;
             })
         .when(zeebeDb)
-        .newIterator(Mockito.anyLong(), Mockito.any(ReadOptions.class));
+        .newIterator(dbContext.getTransaction(), Mockito.anyLong(), Mockito.any(ReadOptions.class));
 
     final long prefixes = 3;
     final long suffixes = 5;
