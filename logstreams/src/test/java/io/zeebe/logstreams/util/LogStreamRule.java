@@ -41,6 +41,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.stubbing.Answer;
 
 public class LogStreamRule extends ExternalResource {
@@ -119,10 +120,24 @@ public class LogStreamRule extends ExternalResource {
 
   private void openDistributedLog() {
     final DistributedLogstreamPartition mockDistLog = mock(DistributedLogstreamPartition.class);
-    //LogstreamConfig.putLogStream(logStream.getLogName(), logStream);
     distributedLogImpl =
         new DefaultDistributedLogstreamService(
             new DistributedLogstreamServiceConfig().withLogName(logStream.getLogName()));
+
+    try {
+      FieldSetter.setField(
+          distributedLogImpl,
+          DefaultDistributedLogstreamService.class.getDeclaredField("logStream"),
+          logStream);
+
+      FieldSetter.setField(
+          distributedLogImpl,
+          DefaultDistributedLogstreamService.class.getDeclaredField("logStorage"),
+          logStream.getLogStorage());
+    } catch (NoSuchFieldException e) {
+      e.printStackTrace();
+    }
+
     doAnswer(
             (Answer<Void>)
                 invocation -> {
@@ -144,7 +159,8 @@ public class LogStreamRule extends ExternalResource {
 
     serviceContainer
         .createService(distributedLogPartitionServiceName(builder.getLogName()), () -> mockDistLog)
-        .install();
+        .install()
+        .join();
   }
 
   private void closeDistributedLog() {

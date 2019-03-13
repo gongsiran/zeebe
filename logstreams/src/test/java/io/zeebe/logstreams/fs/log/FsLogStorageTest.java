@@ -731,38 +731,6 @@ public class FsLogStorageTest {
     fsLogStorage.close();
   }
 
-  @Test
-  public void shouldReadAndWriteThroughDifferentObjects() {
-
-    FsLogStorageConfiguration fsStorageConfig1 =
-        new FsLogStorageConfiguration(SEGMENT_SIZE, logPath, 0, false);
-    FsLogStorage writer = new FsLogStorage(fsStorageConfig1, new MetricsManager(), 0);
-
-    FsLogStorageConfiguration fsStorageConfig2 =
-        new FsLogStorageConfiguration(SEGMENT_SIZE, logPath, 0, false);
-    FsLogStorage reader = new FsLogStorage(fsStorageConfig2, new MetricsManager(), 0);
-
-    writer.open();
-    reader.open();
-
-    final byte[] oneSegment = new byte[SEGMENT_SIZE - FsLogSegmentDescriptor.METADATA_LENGTH];
-    new Random().nextBytes(oneSegment);
-
-    // Write through object1, multiple segments
-    for (int i = 0; i < 2; i++) {
-      Arrays.fill(oneSegment, (byte) i);
-      writer.append(ByteBuffer.wrap(oneSegment));
-    }
-
-    final ByteBuffer readBuffer = ByteBuffer.allocate(MSG.length);
-    final long address = writer.append(ByteBuffer.wrap(MSG));
-
-    // Check read through object2
-    final long result2 = reader.read(readBuffer, address);
-    assertThat(result2).isEqualTo(address + MSG.length);
-    assertThat(readBuffer.array()).isEqualTo(MSG);
-  }
-
   protected byte[] readLogFile(final String logFilePath, final long address, final int capacity) {
     final ByteBuffer buffer = ByteBuffer.allocate(capacity);
 

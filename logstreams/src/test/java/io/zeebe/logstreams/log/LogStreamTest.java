@@ -46,6 +46,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.stubbing.Answer;
 
 public class LogStreamTest {
@@ -67,12 +68,6 @@ public class LogStreamTest {
 
   protected LogStream buildLogStream(final Consumer<LogStreamBuilder> streamConfig) {
 
-    final DistributedLogstreamPartition mockDistLog = mock(DistributedLogstreamPartition.class);
-    serviceContainer
-        .get()
-        .createService(distributedLogPartitionServiceName("test-log-name"), () -> mockDistLog)
-        .install();
-
     final LogStreamBuilder builder = new LogStreamBuilder(PARTITION_ID);
     builder
         .logName("test-log-name")
@@ -84,10 +79,26 @@ public class LogStreamTest {
 
     final LogStream logStream = builder.build().join();
 
-    //LogstreamConfig.putLogStream(logStream.getLogName(), logStream);
+    final DistributedLogstreamPartition mockDistLog = mock(DistributedLogstreamPartition.class);
+
     final DistributedLogstreamService distributedLogImpl =
         new DefaultDistributedLogstreamService(
             new DistributedLogstreamServiceConfig().withLogName(logStream.getLogName()));
+
+    try {
+      FieldSetter.setField(
+          distributedLogImpl,
+          DefaultDistributedLogstreamService.class.getDeclaredField("logStream"),
+          logStream);
+
+      FieldSetter.setField(
+          distributedLogImpl,
+          DefaultDistributedLogstreamService.class.getDeclaredField("logStorage"),
+          logStream.getLogStorage());
+    } catch (NoSuchFieldException e) {
+      e.printStackTrace();
+    }
+
     doAnswer(
             (Answer<Void>)
                 invocation -> {
@@ -106,6 +117,12 @@ public class LogStreamTest {
                 })
         .when(mockDistLog)
         .append(any(ByteBuffer.class), anyLong());
+
+    serviceContainer
+        .get()
+        .createService(distributedLogPartitionServiceName("test-log-name"), () -> mockDistLog)
+        .install()
+        .join();
 
     return logStream;
   }

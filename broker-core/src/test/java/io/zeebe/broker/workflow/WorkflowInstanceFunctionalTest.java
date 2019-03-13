@@ -53,9 +53,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkflowInstanceFunctionalTest {
 
+  private static final Logger LOG = LoggerFactory.getLogger("io.zeebe.test");
   public EmbeddedBrokerRule brokerRule = new EmbeddedBrokerRule();
   public ClientApiRule apiRule = new ClientApiRule(brokerRule::getAtomix);
 
@@ -339,7 +342,7 @@ public class WorkflowInstanceFunctionalTest {
     // given
     // make a couple of deployments to ensure that the deployment stream processor will need some
     // time for reprocessing
-    final int numDeployments = 25;
+    final int numDeployments = 10;
     for (int i = 0; i < numDeployments; i++) {
       testClient.deploy(
           Bpmn.createExecutableProcess(PROCESS_ID)
@@ -356,6 +359,8 @@ public class WorkflowInstanceFunctionalTest {
 
     // when
     brokerRule.startBroker();
+
+    LOG.info("Broker restarted");
 
     // then I can still start workflow instance (i.e. stream processor did not crash
     final long newWorkflowInstanceKey = testClient.createWorkflowInstance(PROCESS_ID);

@@ -15,12 +15,14 @@
  */
 package io.zeebe.distributedlog;
 
+import static io.zeebe.distributedlog.DistributedLogRule.LOG;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.protocol.Protocol;
 import io.zeebe.servicecontainer.testing.ServiceContainerRule;
 import io.zeebe.test.util.TestUtil;
 import io.zeebe.util.sched.testing.ActorSchedulerRule;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -57,7 +59,7 @@ public class DistributedLogTest {
       new DistributedLogRule(
           serviceContainerRule3, 3, 1, 3, members, Collections.singletonList(node2.getNode()));
 
-  public Timeout timeoutRule = Timeout.seconds(60);
+  public Timeout timeoutRule = Timeout.seconds(120);
 
   public static final int DEFAULT_RETRIES = 500;
 
@@ -121,6 +123,50 @@ public class DistributedLogTest {
     assertEventsCount(node3, 3);
   }
 
+  @Test
+  public void shouldRecoverFromFailure()
+      throws InterruptedException, ExecutionException, TimeoutException, IOException {
+
+    node1.waitUntilNodesJoined();
+    node2.waitUntilNodesJoined();
+    node3.waitUntilNodesJoined();
+
+    // given
+    node1.becomeLeader(partitionId);
+
+    // when
+    final Event event1 = writeEvent("record1");
+    final Event event2 = writeEvent("record2");
+    assertEventReplicated(event2, node2);
+    assertEventReplicated(event2, node1);
+    node2.stopNode();
+    LOG.info("Node 2 stopped");
+
+    /*  final Event event3 = writeEvent("record3");
+        assertEventReplicated(event3, node1);
+        assertEventReplicated(event3, node3);
+    */
+    node2.restartNode();
+    LOG.info("Restarting node 2");
+    node2.waitUntilNodesJoined();
+    LOG.info("Node 2 restarted");
+
+    final Event event4 = writeEvent("record4");
+
+    //events are replicated in other nodes
+    assertEventReplicated(event4, node1);
+    assertEventReplicated(event4, node3);
+    assertEventsCount(node1, 3);
+    assertEventsCount(node3, 3);
+
+    writeEvent("record5");
+    LOG.info("replicated on other nodes");
+    //node 2 has recovered
+    assertEventReplicated(event2, node2);
+    assertEventReplicated(event4, node2);
+    assertEventsCount(node2, 3);
+  }
+
   private Event writeEvent(String message) {
     final Event event = new Event();
     event.message = message;
@@ -134,12 +180,14 @@ public class DistributedLogTest {
   }
 
   private void assertEventReplicated(Event event) {
+    assertEventReplicated(event, node1);
+    assertEventReplicated(event, node2);
+    assertEventReplicated(event, node3);
+  }
+
+  private void assertEventReplicated(Event event, DistributedLogRule node) {
     TestUtil.waitUntil(
-        () -> node1.eventAppended(partitionId, event.message, event.position), DEFAULT_RETRIES);
-    TestUtil.waitUntil(
-        () -> node2.eventAppended(partitionId, event.message, event.position), DEFAULT_RETRIES);
-    TestUtil.waitUntil(
-        () -> node3.eventAppended(partitionId, event.message, event.position), DEFAULT_RETRIES);
+        () -> node.eventAppended(partitionId, event.message, event.position), DEFAULT_RETRIES);
   }
 
   private void assertEventsCount(DistributedLogRule node, int expectedCount) {

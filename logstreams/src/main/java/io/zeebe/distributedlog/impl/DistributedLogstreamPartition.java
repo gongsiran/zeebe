@@ -24,6 +24,7 @@ import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
+import io.zeebe.servicecontainer.ServiceStopContext;
 import java.nio.ByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,7 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
     this.atomix = atomixInjector.getValue();
     this.logStream = logStreamInjector.getValue();
 
-    String nodeId = atomix.getMembershipService().getLocalMember().id().id();
+    final String nodeId = atomix.getMembershipService().getLocalMember().id().id();
     LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
 
     distributedLog =
@@ -77,6 +78,13 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
   @Override
   public DistributedLogstreamPartition get() {
     return this;
+  }
+
+  @Override
+  public void stop(ServiceStopContext stopContext) {
+    LogstreamConfig.removeLogStream(
+        atomix.getMembershipService().getLocalMember().id().id(), partitionName);
+   // distributedLog.close();
   }
 
   public Injector<Atomix> getAtomixInjector() {

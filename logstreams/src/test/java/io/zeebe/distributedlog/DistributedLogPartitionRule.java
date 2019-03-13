@@ -18,6 +18,7 @@ package io.zeebe.distributedlog;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.distributedLogPartitionServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageAppenderRootService;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStorageAppenderServiceName;
+import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamRootServiceName;
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamServiceName;
 import static io.zeebe.util.buffer.BufferUtil.bufferAsString;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
@@ -32,8 +33,10 @@ import io.zeebe.protocol.impl.record.RecordMetadata;
 import io.zeebe.servicecontainer.ServiceContainer;
 import io.zeebe.test.util.TestUtil;
 import io.zeebe.util.sched.future.ActorFuture;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicLong;
 import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
@@ -51,12 +54,20 @@ public class DistributedLogPartitionRule {
   private final RecordMetadata metadata = new RecordMetadata();
   public static final Logger LOG = LoggerFactory.getLogger("io.zeebe.distributedlog.test");
   private final String logName;
+  private final String dir;
 
-  public DistributedLogPartitionRule(ServiceContainer serviceContainer, int nodeId, int partition) {
+  public DistributedLogPartitionRule(
+      ServiceContainer serviceContainer, int nodeId, int partition, Path rootDirectory)
+      throws IOException {
     this.serviceContainer = serviceContainer;
     this.nodeId = nodeId;
     this.partition = partition;
     this.logName = String.format("%d-%d", this.partition, this.nodeId);
+    File logDir = new File(rootDirectory.toString(), String.format("log-%d", partition));
+    if (!logDir.exists()) {
+      Files.createDirectory(logDir.toPath());
+    }
+    dir = logDir.toPath().toString();
   }
 
   public void start() throws IOException {
@@ -67,27 +78,34 @@ public class DistributedLogPartitionRule {
     if (serviceContainer.hasService(logStorageAppenderRootService(logName))) {
       logStream.closeAppender().join(); // If opened
     }
-    logStream.close();
-    serviceContainer.removeService(distributedLogPartitionServiceName(logName));
+    if (serviceContainer.hasService(distributedLogPartitionServiceName(logName))) {
+      serviceContainer.removeService(distributedLogPartitionServiceName(logName));
+    }
+    if (serviceContainer.hasService(logStreamRootServiceName(logName))) {
+      logStream.close();
+    }
   }
 
   private void createLogStream() throws IOException {
     final DistributedLogstreamPartition log = new DistributedLogstreamPartition(partition);
-    serviceContainer
-        .createService(distributedLogPartitionServiceName(logName), log)
-        .dependency(DistributedLogRule.ATOMIX_SERVICE_NAME, log.getAtomixInjector())
-        .dependency(logStreamServiceName(logName), log.getLogStreamInjector())
-        .install();
+    ActorFuture<DistributedLogstreamPartition> installFuture = serviceContainer
+      .createService(distributedLogPartitionServiceName(logName), log)
+      .dependency(DistributedLogRule.ATOMIX_SERVICE_NAME, log.getAtomixInjector())
+      .dependency(logStreamServiceName(logName), log.getLogStreamInjector())
+      .install();
 
     final ActorFuture<LogStream> logStreamFuture =
         LogStreams.createFsLogStream(partition)
             .logName(logName)
-            .deleteOnClose(true)
-            .logDirectory(
-                Files.createTempDirectory("dl-test-" + nodeId + "-" + partition + "-").toString())
+            .deleteOnClose(false)
+            .logDirectory(dir)
             .serviceContainer(serviceContainer)
             .build();
+    LOG.info("Build logstreams node {} log {}", nodeId, dir);
     logStream = logStreamFuture.join();
+    LOG.info("Build logstream completed");
+
+    installFuture.join();
 
     reader = new BufferedLogStreamReader(logStream);
   }

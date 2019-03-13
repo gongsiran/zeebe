@@ -77,6 +77,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.stubbing.Answer;
 
 public class TestStreams {
@@ -128,13 +129,6 @@ public class TestStreams {
 
   public LogStream createLogStream(final String name, final int partitionId) {
 
-    // Create distributed log service
-    final DistributedLogstreamPartition mockDistLog = mock(DistributedLogstreamPartition.class);
-
-    serviceContainer
-        .createService(distributedLogPartitionServiceName(name), () -> mockDistLog)
-        .install();
-
     final String rootPath = storageDirectory.getAbsolutePath();
     final LogStream logStream =
         LogStreams.createFsLogStream(partitionId)
@@ -145,11 +139,28 @@ public class TestStreams {
             .build()
             .join();
 
-    // mock append
-    //LogstreamConfig.putLogStream(logStream.getLogName(), logStream);
+    // Create distributed log service
+    final DistributedLogstreamPartition mockDistLog = mock(DistributedLogstreamPartition.class);
+
     final DistributedLogstreamService distributedLogImpl =
         new DefaultDistributedLogstreamService(
             new DistributedLogstreamServiceConfig().withLogName(logStream.getLogName()));
+
+    try {
+      FieldSetter.setField(
+          distributedLogImpl,
+          DefaultDistributedLogstreamService.class.getDeclaredField("logStream"),
+          logStream);
+
+      FieldSetter.setField(
+          distributedLogImpl,
+          DefaultDistributedLogstreamService.class.getDeclaredField("logStorage"),
+          logStream.getLogStorage());
+    } catch (NoSuchFieldException e) {
+      e.printStackTrace();
+    }
+
+    // mock append
     doAnswer(
             (Answer<Void>)
                 invocation -> {
@@ -168,6 +179,11 @@ public class TestStreams {
                 })
         .when(mockDistLog)
         .append(any(ByteBuffer.class), anyLong());
+
+    serviceContainer
+        .createService(distributedLogPartitionServiceName(name), () -> mockDistLog)
+        .install()
+        .join();
 
     logStream.openAppender().join();
 

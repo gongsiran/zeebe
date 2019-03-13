@@ -22,6 +22,7 @@ import io.atomix.primitive.service.ServiceExecutor;
 import io.zeebe.distributedlog.DistributedLogstreamClient;
 import io.zeebe.distributedlog.DistributedLogstreamService;
 import io.zeebe.distributedlog.DistributedLogstreamType;
+import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.spi.LogStorage;
 import java.nio.ByteBuffer;
@@ -37,31 +38,64 @@ public class DefaultDistributedLogstreamService
 
   private LogStream logStream;
   private LogStorage logStorage;
+  private long lastPosition;
 
   private final String logName;
 
   public DefaultDistributedLogstreamService(DistributedLogstreamServiceConfig config) {
     super(DistributedLogstreamType.instance(), DistributedLogstreamClient.class);
     logName = config.getLogName();
-   }
+    lastPosition = -1;
+  }
 
   @Override
   protected void configure(ServiceExecutor executor) {
     super.configure(executor);
-    this.logStream = LogstreamConfig.getLogStream(getLocalMemberId().id(), logName);
-    this.logStorage = this.logStream.getLogStorage();
+    LOG.info("Configuring DistLog {} on node {} ", logName, getLocalMemberId().id());
+    try {
+      // FIXME. when a node restarts this primitive is configured before the logstreams are
+      // initialized.
+      initialize();
+    } catch (Exception e) {
+      //     e.printStackTrace();
+
+    }
+  }
+
+  private void initialize() {
+    try {
+      this.logStream = LogstreamConfig.getLogStream(getLocalMemberId().id(), logName);
+      this.logStorage = this.logStream.getLogStorage();
+      final BufferedLogStreamReader reader = new BufferedLogStreamReader(logStream);
+      reader.seekToLastEvent();
+      lastPosition = reader.getPosition();
+    } catch (NullPointerException e) {
+      // FIXME
+    }
   }
 
   @Override
   public void append(long commitPosition, byte[] blockBuffer) {
-    final ByteBuffer buffer = ByteBuffer.wrap(blockBuffer);
-    logStorage.append(buffer);
-    // TODO: (https://github.com/zeebe-io/zeebe/issues/2058)
-    logStream.signalOnAppendCondition();
-    // Commit position may be not required anymore. https://github.com/zeebe-io/zeebe/issues/2058.
-    // Following is required to trigger the commit listeners.
-    logStream.setCommitPosition(commitPosition);
-    LOG.info("Appending to log {}", logName);
+    if (logStorage == null) {
+      //FIXME:
+   //   initialize();
+    }
+    try {
+      if (commitPosition <= lastPosition) {
+        return;
+      }
+      final ByteBuffer buffer = ByteBuffer.wrap(blockBuffer);
+      logStorage.append(buffer);
+      // TODO: (https://github.com/zeebe-io/zeebe/issues/2058)
+      logStream.signalOnAppendCondition();
+      // Commit position may be not required anymore. https://github.com/zeebe-io/zeebe/issues/2058.
+      // Following is required to trigger the commit listeners.
+      logStream.setCommitPosition(commitPosition);
+      LOG.info("Appending to log {} position {} ", logName, commitPosition);
+      lastPosition = commitPosition;
+    } catch (NullPointerException e) {
+      // TODO: send failure response
+    }
   }
 
   @Override
