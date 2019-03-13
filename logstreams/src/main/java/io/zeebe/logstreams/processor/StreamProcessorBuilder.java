@@ -15,6 +15,7 @@
  */
 package io.zeebe.logstreams.processor;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.logstreams.impl.service.LogStreamServiceNames;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
@@ -172,6 +173,7 @@ public class StreamProcessorBuilder {
     }
     ctx.setLogStreamWriter(logStreamWriter);
 
+    ctx.setDbContext(new DbContext());
     return ctx;
   }
 }

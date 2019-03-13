@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.DefaultColumnFamily;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.LogStreams;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;

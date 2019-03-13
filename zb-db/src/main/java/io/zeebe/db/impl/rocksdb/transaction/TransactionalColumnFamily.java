@@ -19,6 +19,7 @@ import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.DbKey;
 import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.agrona.DirectBuffer;
@@ -34,26 +35,39 @@ class TransactionalColumnFamily<
 
   private final ValueType valueInstance;
   private final KeyType keyInstance;
+  private final DbContext dbContext;
 
   TransactionalColumnFamily(
+      final DbContext dbContext,
       ZeebeTransactionDb<ColumnFamilyNames> transactionDb,
       ColumnFamilyNames columnFamily,
       KeyType keyInstance,
       ValueType valueInstance) {
+    this.dbContext = dbContext;
     this.transactionDb = transactionDb;
-    handle = this.transactionDb.getColumnFamilyHandle(columnFamily);
+    this.handle = this.transactionDb.getColumnFamilyHandle(columnFamily);
     this.keyInstance = keyInstance;
     this.valueInstance = valueInstance;
   }
 
   @Override
   public void put(KeyType key, ValueType value) {
-    transactionDb.put(handle, key, value);
+    put(dbContext, key, value);
+  }
+
+  @Override
+  public void put(DbContext dbContext, KeyType key, ValueType value) {
+    transactionDb.put(dbContext, handle, key, value);
   }
 
   @Override
   public ValueType get(KeyType key) {
-    final DirectBuffer valueBuffer = transactionDb.get(handle, key);
+    return get(dbContext, key);
+  }
+
+  @Override
+  public ValueType get(final DbContext dbContext, final KeyType key) {
+    final DirectBuffer valueBuffer = transactionDb.get(dbContext, handle, key);
     if (valueBuffer != null) {
       valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity());
       return valueInstance;
@@ -63,41 +77,90 @@ class TransactionalColumnFamily<
 
   @Override
   public void forEach(Consumer<ValueType> consumer) {
-    transactionDb.foreach(handle, valueInstance, consumer);
+    forEach(dbContext, consumer);
+  }
+
+  @Override
+  public void forEach(final DbContext dbContext, final Consumer<ValueType> consumer) {
+    transactionDb.foreach(dbContext, handle, valueInstance, consumer);
   }
 
   @Override
   public void forEach(BiConsumer<KeyType, ValueType> consumer) {
-    transactionDb.foreach(handle, keyInstance, valueInstance, consumer);
+    forEach(dbContext, consumer);
+  }
+
+  @Override
+  public void forEach(final DbContext dbContext, final BiConsumer<KeyType, ValueType> consumer) {
+    transactionDb.foreach(dbContext, handle, keyInstance, valueInstance, consumer);
   }
 
   @Override
   public void whileTrue(KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    transactionDb.whileTrue(handle, keyInstance, valueInstance, visitor);
+    whileTrue(dbContext, visitor);
+  }
+
+  @Override
+  public void whileTrue(
+      final DbContext dbContext, final KeyValuePairVisitor<KeyType, ValueType> visitor) {
+    transactionDb.whileTrue(dbContext, handle, keyInstance, valueInstance, visitor);
   }
 
   @Override
   public void whileEqualPrefix(DbKey keyPrefix, BiConsumer<KeyType, ValueType> visitor) {
-    transactionDb.whileEqualPrefix(handle, keyPrefix, keyInstance, valueInstance, visitor);
+    whileEqualPrefix(dbContext, keyPrefix, visitor);
+  }
+
+  @Override
+  public void whileEqualPrefix(
+      final DbContext dbContext,
+      final DbKey keyPrefix,
+      final BiConsumer<KeyType, ValueType> visitor) {
+    transactionDb.whileEqualPrefix(
+        dbContext, handle, keyPrefix, keyInstance, valueInstance, visitor);
   }
 
   @Override
   public void whileEqualPrefix(DbKey keyPrefix, KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    transactionDb.whileEqualPrefix(handle, keyPrefix, keyInstance, valueInstance, visitor);
+    whileEqualPrefix(dbContext, keyPrefix, visitor);
+  }
+
+  @Override
+  public void whileEqualPrefix(
+      final DbContext dbContext,
+      final DbKey keyPrefix,
+      final KeyValuePairVisitor<KeyType, ValueType> visitor) {
+    transactionDb.whileEqualPrefix(
+        dbContext, handle, keyPrefix, keyInstance, valueInstance, visitor);
   }
 
   @Override
   public void delete(KeyType key) {
-    transactionDb.delete(handle, key);
+    delete(dbContext, key);
+  }
+
+  @Override
+  public void delete(final DbContext dbContext, final KeyType key) {
+    transactionDb.delete(dbContext, handle, key);
   }
 
   @Override
   public boolean exists(KeyType key) {
-    return transactionDb.exists(handle, key);
+    return exists(dbContext, key);
+  }
+
+  @Override
+  public boolean exists(final DbContext dbContext, final KeyType key) {
+    return transactionDb.exists(dbContext, handle, key);
   }
 
   @Override
   public boolean isEmpty() {
-    return transactionDb.isEmpty(handle);
+    return isEmpty(dbContext);
+  }
+
+  @Override
+  public boolean isEmpty(final DbContext dbContext) {
+    return transactionDb.isEmpty(dbContext, handle);
   }
 }

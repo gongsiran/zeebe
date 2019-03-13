@@ -28,6 +28,7 @@ import io.zeebe.broker.subscription.message.state.WorkflowInstanceSubscriptionSt
 import io.zeebe.broker.workflow.deployment.distribute.processor.state.DeploymentsState;
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.msgpack.UnpackedObject;
 import io.zeebe.protocol.Protocol;
 import io.zeebe.protocol.WorkflowInstanceRelated;
@@ -50,7 +51,11 @@ public class ZeebeState {
   }
 
   public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
-    keyState = new KeyState(partitionId, zeebeDb);
+    this(partitionId, zeebeDb, new DbContext());
+  }
+
+  public ZeebeState(final int partitionId, final ZeebeDb zeebeDb, final DbContext dbContext) {
+    keyState = new KeyState(dbContext, partitionId, zeebeDb);
     workflowState = new WorkflowState(zeebeDb, keyState);
     deploymentState = new DeploymentsState(zeebeDb);
     jobState = new JobState(zeebeDb);

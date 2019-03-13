@@ -16,6 +16,7 @@
 package io.zeebe.logstreams.processor;
 
 import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.rocksdb.DbContext;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamReader;
@@ -53,6 +54,7 @@ public class StreamProcessorController extends Actor {
       "Stream processor '{}' failed to reprocess event. Skip this event {}.";
 
   private final StreamProcessorFactory streamProcessorFactory;
+  private final DbContext dbContext;
   private StreamProcessor streamProcessor;
   private final StreamProcessorContext streamProcessorContext;
   private final SnapshotController snapshotController;
@@ -103,6 +105,9 @@ public class StreamProcessorController extends Actor {
     this.snapshotPeriod = context.getSnapshotPeriod();
     this.eventFilter = context.getEventFilter();
     this.isReadOnlyProcessor = context.isReadOnlyProcessor();
+
+    this.dbContext = context.getDbContext();
+    context.getDbContext().setTransactionProvider(zeebeDb::getTransaction);
   }
 
   @Override
@@ -137,7 +142,7 @@ public class StreamProcessorController extends Actor {
       lastSourceEventPosition = seekFromSnapshotPositionToLastSourceEvent();
 
       zeebeDb = snapshotController.openDb();
-      streamProcessor = streamProcessorFactory.createProcessor(zeebeDb);
+      streamProcessor = streamProcessorFactory.createProcessor(zeebeDb, dbContext);
       streamProcessor.onOpen(streamProcessorContext);
     } catch (final Exception e) {
       onFailure();

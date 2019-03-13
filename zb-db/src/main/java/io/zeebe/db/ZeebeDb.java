@@ -15,7 +15,10 @@
  */
 package io.zeebe.db;
 
+import io.zeebe.db.impl.rocksdb.DbContext;
 import java.io.File;
+import org.rocksdb.Transaction;
+import org.rocksdb.WriteOptions;
 
 /**
  * The zeebe database, to store key value pairs in different column families. The column families
@@ -55,8 +58,9 @@ public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extend
    * @param <ValueType> the value type of the column family
    * @return the created column family instance
    */
+  // TODO: update docs
   <KeyType extends DbKey, ValueType extends DbValue>
-      ColumnFamily<KeyType, ValueType> createColumnFamily(
+      ColumnFamily<KeyType, ValueType> createColumnFamily(DbContext dbContext,
           ColumnFamilyType columnFamily, KeyType keyInstance, ValueType valueInstance);
 
   /**
@@ -65,4 +69,7 @@ public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extend
    * @param snapshotDir the directory where the snapshot should be stored
    */
   void createSnapshot(File snapshotDir);
+
+  // TODO: docs
+  Transaction getTransaction(WriteOptions options);
 }
