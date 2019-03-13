@@ -32,7 +32,6 @@ import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.impl.record.value.job.JobBatchRecord;
 import io.zeebe.protocol.impl.record.value.job.JobRecord;
 import io.zeebe.protocol.intent.JobBatchIntent;
-import io.zeebe.protocol.intent.JobIntent;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -163,7 +162,7 @@ public class JobBatchActivateProcessor implements TypedRecordProcessor<JobBatchR
       copiedJob.wrap(copy, 0, jobRecord.getLength());
 
       // first write follow up event as state.activate will clear the payload
-      streamWriter.appendFollowUpEvent(key, JobIntent.ACTIVATED, copiedJob);
+      // streamWriter.appendFollowUpEvent(key, JobIntent.ACTIVATED, copiedJob);
       state.activate(key, copiedJob);
     }
   }
