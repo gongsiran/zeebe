@@ -25,7 +25,6 @@ import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.servicecontainer.ServiceStopContext;
 import io.zeebe.util.sched.future.CompletableActorFuture;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +55,7 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
     partitionName = DistributedLogstreamName.getPartitionKey(partitionId);
   }
 
-  public void append(ByteBuffer blockBuffer, long commitPosition) {
+  public void append(byte[] blockBuffer, long commitPosition) {
     distributedLog.append(partitionName, commitPosition, blockBuffer);
   }
 

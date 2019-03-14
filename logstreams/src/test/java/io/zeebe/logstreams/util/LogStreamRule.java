@@ -155,7 +155,7 @@ public class LogStreamRule extends ExternalResource {
                   return null;
                 })
         .when(mockDistLog)
-        .append(any(ByteBuffer.class), anyLong());
+        .append(any(), anyLong());
 
     serviceContainer
         .createService(distributedLogPartitionServiceName(builder.getLogName()), () -> mockDistLog)

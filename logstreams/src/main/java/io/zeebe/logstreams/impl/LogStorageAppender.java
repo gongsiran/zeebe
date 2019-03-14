@@ -24,7 +24,9 @@ import io.zeebe.util.sched.channel.ActorConditions;
 import io.zeebe.util.sched.future.ActorFuture;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.slf4j.Logger;
 
 /** Consume the write buffer and append the blocks to the distributedlog. */
@@ -86,10 +88,16 @@ public class LogStorageAppender extends Actor {
     try {
       // CurrentAppenderPosition gives the position of the first event in the buffer. commitPosition
       // must be > position of the last event in the block.
-      final long commitPosition = blockPeek.getNextPosition() - 1;
-      distributedLog.append(
-          rawBuffer,
-          commitPosition); // TODO: handle errors https://github.com/zeebe-io/zeebe/issues/2064
+
+
+      final byte[] bytes = new byte[rawBuffer.remaining()];
+      rawBuffer.get(bytes);
+
+      final long lastEventPosition = getLastEventPosition(bytes);
+     // final long commitPosition = blockPeek.getNextPosition() - 1;
+      final long commitPosition = lastEventPosition;
+      distributedLog.append(bytes, commitPosition);
+      // TODO: handle errors https://github.com/zeebe-io/zeebe/issues/2064
       blockPeek.markCompleted();
     } catch (Exception e) {
       // try again
@@ -98,22 +106,23 @@ public class LogStorageAppender extends Actor {
     }
   }
 
-  /* private long getLastEventPosition(ByteBuffer buffer) {
+  private long getLastEventPosition(byte[] buffer) {
     int bufferOffset = 0;
-    DirectBuffer directBuffer = new UnsafeBuffer();
+    DirectBuffer directBuffer = new UnsafeBuffer(0, 0);
+
     directBuffer.wrap(buffer);
     long lastEventPosition = -1;
 
     LoggedEventImpl nextEvent = new LoggedEventImpl();
-    int remaining = buffer.position() - bufferOffset;
+    int remaining = buffer.length - bufferOffset;
     while (remaining > 0) {
       nextEvent.wrap(directBuffer, bufferOffset);
       bufferOffset += nextEvent.getFragmentLength();
       lastEventPosition = nextEvent.getPosition();
-      remaining = buffer.position() - bufferOffset;
+      remaining = buffer.length - bufferOffset;
     }
     return lastEventPosition;
-  }*/
+  }
 
   private void discardBlock() {
     blockPeek.markFailed();

@@ -118,7 +118,7 @@ public class PartitionInstallService implements Service<Void> {
         .dependency(
             distributedLogPartitionServiceName(
                 logName)) // This is needed because logstream services are created with in the
-                          // Atomix. Without it there is some deadlock somewhere in the actors.
+        // Atomix. Without it there is some deadlock somewhere in the actors.
         .group(LEADERSHIP_SERVICE_GROUP)
         .install();
 

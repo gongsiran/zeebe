@@ -116,7 +116,7 @@ public class LogStreamTest {
                   return null;
                 })
         .when(mockDistLog)
-        .append(any(ByteBuffer.class), anyLong());
+        .append(any(), anyLong());
 
     serviceContainer
         .get()

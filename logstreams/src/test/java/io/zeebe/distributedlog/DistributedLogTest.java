@@ -134,24 +134,30 @@ public class DistributedLogTest {
     // given
     node1.becomeLeader(partitionId);
 
-    // when
     final Event event1 = writeEvent("record1");
-    final Event event2 = writeEvent("record2");
-    assertEventReplicated(event2, node2);
-    assertEventReplicated(event2, node1);
-    node2.stopNode();
-    LOG.info("Node 2 stopped");
+    assertEventReplicated(event1, node2);
+    assertEventReplicated(event1, node1);
 
+    // when
+
+    node2.stopNode();
+
+    // Write some events when node 2 is away
+    final Event event2 = writeEvent("record2");
     final Event event3 = writeEvent("record3");
+
+    assertEventReplicated(event2, node1);
+    assertEventReplicated(event2, node3);
     assertEventReplicated(event3, node1);
     assertEventReplicated(event3, node3);
 
     node2.restartNode();
-    LOG.info("Restarting node 2");
     node2.waitUntilNodesJoined();
     LOG.info("Node 2 restarted");
 
     final Event event4 = writeEvent("record4");
+
+    // then
 
     // events are replicated in other nodes
     assertEventReplicated(event4, node1);
@@ -159,13 +165,13 @@ public class DistributedLogTest {
     assertEventsCount(node1, 4);
     assertEventsCount(node3, 4);
 
-    // writeEvent("record5");
-    LOG.info("replicated on other nodes");
-    // node 2 has recovered
+    // node 2 can recover
     assertEventReplicated(event2, node2);
+    assertEventReplicated(event3, node2);
     assertEventReplicated(event4, node2);
-    // TODO: test this one the raft-replay is handled
-    // assertEventsCount(node2, 4);
+
+    // ensure no redundant writes
+    assertEventsCount(node2, 4);
   }
 
   private Event writeEvent(String message) {

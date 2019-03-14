@@ -26,7 +26,6 @@ import io.zeebe.distributedlog.DistributedLogstream;
 import io.zeebe.distributedlog.DistributedLogstreamClient;
 import io.zeebe.distributedlog.DistributedLogstreamService;
 import io.zeebe.distributedlog.LogEventListener;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -51,9 +50,9 @@ public class DistributedLogstreamProxy
 
   @Override
   public CompletableFuture<Void> append(
-      String partition, long commitPosition, ByteBuffer blockBuffer) {
-    final byte[] buffer = new byte[blockBuffer.remaining()];
-    blockBuffer.get(buffer);
+      String partition, long commitPosition, byte[] buffer) {
+    //final byte[] buffer = new byte[blockBuffer.remaining()];
+   // blockBuffer.get(buffer);
 
     return getProxyClient().acceptBy(partition, service -> service.append(commitPosition, buffer));
   }

@@ -18,7 +18,6 @@ package io.zeebe.distributedlog.impl;
 import io.atomix.primitive.Synchronous;
 import io.zeebe.distributedlog.AsyncDistributedLogstream;
 import io.zeebe.distributedlog.DistributedLogstream;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -37,7 +36,7 @@ public class BlockingDistributedLogstream extends Synchronous<AsyncDistributedLo
   }
 
   @Override
-  public void append(String partition, long commitPosition, ByteBuffer blockBuffer) {
+  public void append(String partition, long commitPosition, byte[] blockBuffer) {
     // TODO: handle errors
     try {
       distributedLogstreamProxy
