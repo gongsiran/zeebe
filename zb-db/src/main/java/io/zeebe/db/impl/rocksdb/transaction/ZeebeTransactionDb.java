@@ -141,7 +141,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       value.write(valueBuffer, 0);
 
       dbContext
-          .getTransaction()
+          .getCurrentTransaction()
           .put(
               columnFamilyHandle,
               keyBuffer.byteArray(),
@@ -154,7 +154,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   }
 
   //  private void ensureInOpenTransaction(TransactionOperation runnable) {
-  //    transaction(runnable);
+  //    runInTransaction(runnable);
   //  }
   //
   //  private boolean isInCurrentTransaction() {
@@ -198,7 +198,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
     try {
       final ExpandableArrayBuffer keyBuffer = dbContext.getKeyBuffer();
       final DirectBuffer valueViewBuffer = dbContext.getValueViewBuffer();
-      final ZeebeTransaction transaction = dbContext.getTransaction();
+      final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
 
       key.write(keyBuffer, 0);
       final int keyLength = key.getLength();
@@ -233,7 +233,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   protected boolean exists(
       final DbContext dbContext, final long columnFamilyHandle, final DbKey key) {
     try {
-      final ZeebeTransaction transaction = dbContext.getTransaction();
+      final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
       final ExpandableArrayBuffer keyBuffer = dbContext.getKeyBuffer();
       final DirectBuffer valueViewBuffer = dbContext.getValueViewBuffer();
 
@@ -249,7 +249,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   protected void delete(final DbContext dbContext, final long columnFamilyHandle, final DbKey key) {
     try {
-      final ZeebeTransaction transaction = dbContext.getTransaction();
+      final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
       final ExpandableArrayBuffer keyBuffer = dbContext.getKeyBuffer();
 
       key.write(keyBuffer, 0);
@@ -305,7 +305,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       final DbContext dbContext,
       final long columnFamilyHandle,
       final BiConsumer<DirectBuffer, DirectBuffer> keyValuePairConsumer) {
-    final ZeebeTransaction transaction = dbContext.getTransaction();
+    final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
     final DirectBuffer keyViewBuffer = dbContext.getKeyViewBuffer();
     final DirectBuffer valueViewBuffer = dbContext.getValueViewBuffer();
 
@@ -325,7 +325,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       final KeyType keyInstance,
       final ValueType valueInstance,
       final KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    final ZeebeTransaction transaction = dbContext.getTransaction();
+    final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
     final DirectBuffer keyViewBuffer = dbContext.getKeyViewBuffer();
     final DirectBuffer valueViewBuffer = dbContext.getValueViewBuffer();
 
@@ -374,17 +374,19 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       KeyType keyInstance,
       ValueType valueInstance,
       KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    if (dbContext.isPrefixIterationActive()) {
+    final int activePrefixIterations = dbContext.getActivePrefixIterations();
+    final ExpandableArrayBuffer[] prefixKeyBuffers = dbContext.getPrefixKeyBuffers();
+
+    if (activePrefixIterations + 1 > prefixKeyBuffers.length) {
       throw new IllegalStateException(
           "Currently nested prefix iterations are not supported! This will cause unexpected behavior.");
     }
 
-    // TODO: check if really necessary
-    dbContext.setPrefixIteration(true);
-    final ExpandableArrayBuffer prefixKeyBuffer = dbContext.getPrefixKeyBuffer();
+    dbContext.incrementActivePrefixIterations();
+    final ExpandableArrayBuffer prefixKeyBuffer = prefixKeyBuffers[activePrefixIterations];
     final DirectBuffer keyViewBuffer = dbContext.getKeyViewBuffer();
     final DirectBuffer valueViewBuffer = dbContext.getValueViewBuffer();
-    final ZeebeTransaction transaction = dbContext.getTransaction();
+    final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
 
     try (ReadOptions options =
             new ReadOptions().setPrefixSameAsStart(true).setTotalOrderSeek(false);
@@ -408,7 +410,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
             visit(keyViewBuffer, valueViewBuffer, keyInstance, valueInstance, visitor, iterator);
       }
     } finally {
-      dbContext.setPrefixIteration(false);
+      dbContext.decrementActivePrefixIterations();
     }
   }
 
@@ -429,7 +431,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
   }
 
   public boolean isEmpty(final DbContext dbContext, final long columnFamilyHandle) {
-    final ZeebeTransaction transaction = dbContext.getTransaction();
+    final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
     try (ReadOptions options = new ReadOptions();
         RocksIterator iterator = newIterator(transaction, columnFamilyHandle, options)) {
       iterator.seekToFirst();

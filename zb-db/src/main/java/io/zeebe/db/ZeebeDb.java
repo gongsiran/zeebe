@@ -60,8 +60,11 @@ public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extend
    */
   // TODO: update docs
   <KeyType extends DbKey, ValueType extends DbValue>
-      ColumnFamily<KeyType, ValueType> createColumnFamily(DbContext dbContext,
-          ColumnFamilyType columnFamily, KeyType keyInstance, ValueType valueInstance);
+      ColumnFamily<KeyType, ValueType> createColumnFamily(
+          DbContext dbContext,
+          ColumnFamilyType columnFamily,
+          KeyType keyInstance,
+          ValueType valueInstance);
 
   /**
    * Creates a snapshot of the current database in the given directory.

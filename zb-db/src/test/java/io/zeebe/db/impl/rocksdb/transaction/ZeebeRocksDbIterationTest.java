@@ -73,7 +73,8 @@ public class ZeebeRocksDbIterationTest {
               return spy;
             })
         .when(zeebeDb)
-        .newIterator(dbContext.getTransaction(), Mockito.anyLong(), Mockito.any(ReadOptions.class));
+        .newIterator(
+            dbContext.getCurrentTransaction(), Mockito.anyLong(), Mockito.any(ReadOptions.class));
 
     final long prefixes = 3;
     final long suffixes = 5;

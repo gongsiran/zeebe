@@ -46,12 +46,16 @@ public class ZeebeState {
   private final IncidentState incidentState;
   private final BlackList blackList;
 
-  public ZeebeState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
-    this(Protocol.DEPLOYMENT_PARTITION, zeebeDb);
-  }
+  //  public ZeebeState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  //    this(Protocol.DEPLOYMENT_PARTITION, zeebeDb);
+  //  }
+  //
+  //  public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+  //    this(partitionId, zeebeDb, new DbContext());
+  //  }
 
-  public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
-    this(partitionId, zeebeDb, new DbContext());
+  public ZeebeState(final ZeebeDb db, final DbContext dbContext) {
+    this(Protocol.DEPLOYMENT_PARTITION, db, dbContext);
   }
 
   public ZeebeState(final int partitionId, final ZeebeDb zeebeDb, final DbContext dbContext) {

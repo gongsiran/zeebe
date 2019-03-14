@@ -98,7 +98,7 @@ public class ElementInstanceState {
             recordParentStateRecordKey,
             DbNil.INSTANCE);
 
-    variablesState = new VariablesState(zeebeDb, keyGenerator);
+    variablesState = new VariablesState(dbContext, zeebeDb, keyGenerator);
   }
 
   public ElementInstance newInstance(

@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.zeebe.broker.clustering.base.topology.TopologyManager;
+import io.zeebe.broker.logstreams.processor.TypedEventStreamProcessorBuilder;
 import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.broker.subscription.command.SubscriptionCommandSender;
@@ -38,10 +39,13 @@ import io.zeebe.broker.subscription.message.processor.MessageEventProcessors;
 import io.zeebe.broker.subscription.message.processor.MessageObserver;
 import io.zeebe.broker.util.StreamProcessorControl;
 import io.zeebe.broker.util.StreamProcessorRule;
+import io.zeebe.broker.util.ZeebeDbInitData;
+import io.zeebe.logstreams.processor.StreamProcessor;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.impl.record.value.message.MessageRecord;
 import io.zeebe.protocol.intent.MessageIntent;
 import io.zeebe.protocol.intent.MessageSubscriptionIntent;
+import java.util.function.BiFunction;
 import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -77,15 +81,17 @@ public class MessageStreamProcessorTest {
 
     streamProcessor =
         rule.runStreamProcessor(
-            (typedEventStreamProcessorBuilder, zeebeDb) -> {
-              final ZeebeState zeebeState = new ZeebeState(zeebeDb);
-              MessageEventProcessors.addMessageProcessors(
-                  typedEventStreamProcessorBuilder,
-                  zeebeState,
-                  mockSubscriptionCommandSender,
-                  mockTopologyManager);
-              return typedEventStreamProcessorBuilder.build();
-            });
+            (BiFunction<TypedEventStreamProcessorBuilder, ZeebeDbInitData, StreamProcessor>)
+                (typedEventStreamProcessorBuilder, zeebeDbInitData) -> {
+                  final ZeebeState zeebeState =
+                      new ZeebeState(zeebeDbInitData.getZeebeDb(), zeebeDbInitData.getDbContext());
+                  MessageEventProcessors.addMessageProcessors(
+                      typedEventStreamProcessorBuilder,
+                      zeebeState,
+                      mockSubscriptionCommandSender,
+                      mockTopologyManager);
+                  return typedEventStreamProcessorBuilder.build();
+                });
   }
 
   @Test

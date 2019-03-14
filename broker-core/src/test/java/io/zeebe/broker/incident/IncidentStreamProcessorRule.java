@@ -29,14 +29,17 @@ import static org.mockito.Mockito.when;
 import io.zeebe.broker.clustering.base.topology.TopologyManager;
 import io.zeebe.broker.incident.processor.IncidentEventProcessors;
 import io.zeebe.broker.job.JobEventProcessors;
+import io.zeebe.broker.logstreams.processor.TypedEventStreamProcessorBuilder;
 import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.broker.subscription.command.SubscriptionCommandSender;
 import io.zeebe.broker.util.StreamProcessorRule;
+import io.zeebe.broker.util.ZeebeDbInitData;
 import io.zeebe.broker.workflow.processor.BpmnStepProcessor;
 import io.zeebe.broker.workflow.processor.WorkflowEventProcessors;
 import io.zeebe.broker.workflow.processor.timer.DueDateTimerChecker;
 import io.zeebe.broker.workflow.state.WorkflowState;
+import io.zeebe.logstreams.processor.StreamProcessor;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.model.bpmn.instance.Process;
@@ -49,6 +52,7 @@ import io.zeebe.protocol.intent.WorkflowInstanceCreationIntent;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import io.zeebe.util.buffer.BufferUtil;
 import java.io.ByteArrayOutputStream;
+import java.util.function.BiFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Rule;
@@ -88,24 +92,25 @@ public class IncidentStreamProcessorRule extends ExternalResource {
         .thenReturn(true);
 
     environmentRule.runStreamProcessor(
-        (typedEventStreamProcessorBuilder, zeebeDb) -> {
-          this.zeebeState = new ZeebeState(zeebeDb);
-          this.workflowState = zeebeState.getWorkflowState();
-          final BpmnStepProcessor stepProcessor =
-              WorkflowEventProcessors.addWorkflowProcessors(
-                  typedEventStreamProcessorBuilder,
-                  zeebeState,
-                  mockSubscriptionCommandSender,
-                  mockTopologyManager,
-                  mockTimerEventScheduler,
-                  1);
+        (BiFunction<TypedEventStreamProcessorBuilder, ZeebeDbInitData, StreamProcessor>)
+            (typedEventStreamProcessorBuilder, zeebeData) -> {
+              this.zeebeState = new ZeebeState(zeebeData.getZeebeDb(), zeebeData.getDbContext());
+              this.workflowState = zeebeState.getWorkflowState();
+              final BpmnStepProcessor stepProcessor =
+                  WorkflowEventProcessors.addWorkflowProcessors(
+                      typedEventStreamProcessorBuilder,
+                      zeebeState,
+                      mockSubscriptionCommandSender,
+                      mockTopologyManager,
+                      mockTimerEventScheduler,
+                      1);
 
-          IncidentEventProcessors.addProcessors(
-              typedEventStreamProcessorBuilder, zeebeState, stepProcessor);
-          JobEventProcessors.addJobProcessors(typedEventStreamProcessorBuilder, zeebeState);
+              IncidentEventProcessors.addProcessors(
+                  typedEventStreamProcessorBuilder, zeebeState, stepProcessor);
+              JobEventProcessors.addJobProcessors(typedEventStreamProcessorBuilder, zeebeState);
 
-          return typedEventStreamProcessorBuilder.build();
-        });
+              return typedEventStreamProcessorBuilder.build();
+            });
   }
 
   public ZeebeState getZeebeState() {

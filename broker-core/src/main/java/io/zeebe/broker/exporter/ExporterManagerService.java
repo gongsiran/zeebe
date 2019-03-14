@@ -89,9 +89,9 @@ public class ExporterManagerService implements Service<ExporterManagerService> {
         .snapshotController(snapshotController)
         .streamProcessorFactory(
             (zeebeDb, dbContext) -> {
-              // TODO: set here?
               dbContext.setTransactionProvider(zeebeDb::getTransaction);
               return new ExporterStreamProcessor(
+                  dbContext,
                   zeebeDb,
                   partition.getInfo().getPartitionId(),
                   exporterRepository.getExporters().values());

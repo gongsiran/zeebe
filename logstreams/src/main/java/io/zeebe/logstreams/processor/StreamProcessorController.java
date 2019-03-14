@@ -251,10 +251,12 @@ public class StreamProcessorController extends Actor {
         if (eventProcessor != null) {
           try {
             // don't execute side effects or write events
-            zeebeDb.transaction(eventProcessor::processEvent);
+            dbContext.runInTransaction(eventProcessor::processEvent);
+            //            zeebeDb.transaction(eventProcessor::processEvent);
           } catch (final Exception e) {
             LOG.error(ERROR_MESSAGE_REPROCESSING_FAILED_SKIP_EVENT, getName(), currentEvent, e);
-            zeebeDb.transaction(() -> eventProcessor.processingFailed(e));
+            dbContext.runInTransaction(() -> eventProcessor.processingFailed(e));
+            //            zeebeDb.transaction(() -> eventProcessor.processingFailed(e));
           }
         }
       } catch (final Exception e) {
@@ -306,12 +308,14 @@ public class StreamProcessorController extends Actor {
 
       if (eventProcessor != null) {
         try {
-          zeebeDb.transaction(eventProcessor::processEvent);
+          dbContext.runInTransaction(eventProcessor::processEvent);
+          //          zeebeDb.transaction(eventProcessor::processEvent);
           metrics.incrementEventsProcessedCount();
           actor.runUntilDone(this::executeSideEffects);
         } catch (final Exception e) {
           LOG.error(ERROR_MESSAGE_PROCESSING_FAILED_SKIP_EVENT, getName(), event, e);
-          zeebeDb.transaction(() -> eventProcessor.processingFailed(e));
+          dbContext.runInTransaction(() -> eventProcessor.processingFailed(e));
+          //          zeebeDb.transaction(() -> eventProcessor.processingFailed(e));
           // send rejection etc
           actor.runUntilDone(this::executeSideEffects);
         }

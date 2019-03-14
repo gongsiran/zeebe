@@ -93,7 +93,7 @@ public class BufferedLogStreamReader implements LogStreamReader {
     logStream = log;
     logBlockIndex =
         new LogBlockIndex(
-            new DbContext(),    //
+            new DbContext(), //
             ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
             log.getStateStorage());
     logBlockIndex.openDb();

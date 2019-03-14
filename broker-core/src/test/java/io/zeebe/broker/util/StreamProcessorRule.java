@@ -22,7 +22,6 @@ import io.zeebe.broker.logstreams.processor.TypedStreamEnvironment;
 import io.zeebe.broker.logstreams.state.DefaultZeebeDbFactory;
 import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.broker.transport.clientapi.BufferingServerOutput;
-import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.processor.StreamProcessor;
@@ -105,7 +104,7 @@ public class StreamProcessorRule implements TestRule {
   }
 
   public StreamProcessorControl runStreamProcessor(
-      BiFunction<TypedEventStreamProcessorBuilder, ZeebeDb, StreamProcessor> factory) {
+      BiFunction<TypedEventStreamProcessorBuilder, ZeebeDbInitData, StreamProcessor> factory) {
     final StreamProcessorControl control = initStreamProcessor(factory);
     control.start();
     return control;
@@ -116,18 +115,19 @@ public class StreamProcessorRule implements TestRule {
   }
 
   public StreamProcessorControl initStreamProcessor(
-      BiFunction<TypedEventStreamProcessorBuilder, ZeebeDb, StreamProcessor> factory) {
+      BiFunction<TypedEventStreamProcessorBuilder, ZeebeDbInitData, StreamProcessor> factory) {
 
     return streams.initStreamProcessor(
         STREAM_NAME,
         0,
         zeebeDbFactory,
-        (db) -> {
-          zeebeState = new ZeebeState(db);
+        (db, dbContext) -> {
+          dbContext.setTransactionProvider(db::getTransaction);
+          zeebeState = new ZeebeState(db, dbContext);
           final TypedEventStreamProcessorBuilder processorBuilder =
               streamEnvironment.newStreamProcessor().zeebeState(zeebeState);
 
-          return factory.apply(processorBuilder, db);
+          return factory.apply(processorBuilder, new ZeebeDbInitData(db, dbContext));
         });
   }
 

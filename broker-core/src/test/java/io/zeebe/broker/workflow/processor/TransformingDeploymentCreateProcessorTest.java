@@ -22,12 +22,15 @@ import static io.zeebe.util.buffer.BufferUtil.wrapString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import io.zeebe.broker.logstreams.processor.TypedEventStreamProcessorBuilder;
 import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.broker.util.StreamProcessorControl;
 import io.zeebe.broker.util.StreamProcessorRule;
+import io.zeebe.broker.util.ZeebeDbInitData;
 import io.zeebe.broker.workflow.processor.deployment.DeploymentEventProcessors;
 import io.zeebe.broker.workflow.state.WorkflowState;
+import io.zeebe.logstreams.processor.StreamProcessor;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.protocol.Protocol;
@@ -36,6 +39,7 @@ import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
 import io.zeebe.protocol.impl.record.value.deployment.ResourceType;
 import io.zeebe.protocol.intent.DeploymentIntent;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,16 +58,18 @@ public class TransformingDeploymentCreateProcessorTest {
     MockitoAnnotations.initMocks(this);
     streamProcessor =
         rule.initStreamProcessor(
-            (typedEventStreamProcessorBuilder, zeebeDb) -> {
-              final ZeebeState zeebeState = new ZeebeState(zeebeDb);
-              workflowState = zeebeState.getWorkflowState();
+            (BiFunction<TypedEventStreamProcessorBuilder, ZeebeDbInitData, StreamProcessor>)
+                (typedEventStreamProcessorBuilder, zeebeInitData) -> {
+                  final ZeebeState zeebeState =
+                      new ZeebeState(zeebeInitData.getZeebeDb(), zeebeInitData.getDbContext());
+                  workflowState = zeebeState.getWorkflowState();
 
-              final CatchEventBehavior catchEventBehavior = mock(CatchEventBehavior.class);
-              DeploymentEventProcessors.addTransformingDeploymentProcessor(
-                  typedEventStreamProcessorBuilder, zeebeState, catchEventBehavior);
+                  final CatchEventBehavior catchEventBehavior = mock(CatchEventBehavior.class);
+                  DeploymentEventProcessors.addTransformingDeploymentProcessor(
+                      typedEventStreamProcessorBuilder, zeebeState, catchEventBehavior);
 
-              return typedEventStreamProcessorBuilder.build();
-            });
+                  return typedEventStreamProcessorBuilder.build();
+                });
   }
 
   @Test

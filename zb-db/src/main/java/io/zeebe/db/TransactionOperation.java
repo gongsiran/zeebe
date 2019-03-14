@@ -15,7 +15,7 @@
  */
 package io.zeebe.db;
 
-/** One or multiple operations which are executed during an open transaction. */
+/** One or multiple operations which are executed during an open runInTransaction. */
 @FunctionalInterface
 public interface TransactionOperation {
   void run() throws Exception;
