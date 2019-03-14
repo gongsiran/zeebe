@@ -236,7 +236,8 @@ public class CancelWorkflowInstanceTest {
             .collect(Collectors.toList());
 
     final List<Record<WorkflowInstanceRecordValue>> terminatedElements =
-        workflowEvents.stream()
+        workflowEvents
+            .stream()
             .filter(r -> r.getMetadata().getIntent() == WorkflowInstanceIntent.ELEMENT_TERMINATED)
             .collect(Collectors.toList());
 
@@ -256,7 +257,7 @@ public class CancelWorkflowInstanceTest {
         Bpmn.createExecutableProcess(PROCESS_ID)
             .startEvent()
             .intermediateCatchEvent("catch-event")
-            .message(b -> b.name("msg").zeebeCorrelationKey("$.id"))
+            .message(b -> b.name("msg").zeebeCorrelationKey("id"))
             .done());
 
     final long workflowInstanceKey =
