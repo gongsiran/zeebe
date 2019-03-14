@@ -35,7 +35,6 @@ import io.zeebe.servicecontainer.testing.ServiceContainerRule;
 import io.zeebe.test.util.AutoCloseableRule;
 import io.zeebe.util.sched.testing.ActorSchedulerRule;
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -107,10 +106,12 @@ public class LogStreamTest {
                       && arguments.length > 1
                       && arguments[0] != null
                       && arguments[1] != null) {
-                    final ByteBuffer buffer = (ByteBuffer) arguments[0];
+                    /*  final ByteBuffer buffer = (ByteBuffer) arguments[0];
                     final long pos = (long) arguments[1];
                     final byte[] bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes);
+                    buffer.get(bytes);*/
+                    final byte[] bytes = (byte[]) arguments[0];
+                    final long pos = (long) arguments[1];
                     distributedLogImpl.append(pos, bytes);
                   }
                   return null;

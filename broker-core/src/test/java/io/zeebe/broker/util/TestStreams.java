@@ -70,7 +70,6 @@ import io.zeebe.test.util.AutoCloseableRule;
 import io.zeebe.util.LangUtil;
 import io.zeebe.util.sched.ActorScheduler;
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -169,10 +168,12 @@ public class TestStreams {
                       && arguments.length > 1
                       && arguments[0] != null
                       && arguments[1] != null) {
-                    final ByteBuffer buffer = (ByteBuffer) arguments[0];
+                    /*final ByteBuffer buffer = (ByteBuffer) arguments[0];
                     final long pos = (long) arguments[1];
                     final byte[] bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes);
+                    buffer.get(bytes);*/
+                    final byte[] bytes = (byte[]) arguments[0];
+                    final long pos = (long) arguments[1];
                     distributedLogImpl.append(pos, bytes);
                   }
                   return null;

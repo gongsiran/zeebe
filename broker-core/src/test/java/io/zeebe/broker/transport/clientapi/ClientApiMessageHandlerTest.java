@@ -53,7 +53,6 @@ import io.zeebe.transport.RemoteAddress;
 import io.zeebe.transport.SocketAddress;
 import io.zeebe.transport.impl.RemoteAddressImpl;
 import io.zeebe.util.sched.testing.ActorSchedulerRule;
-import java.nio.ByteBuffer;
 import java.util.List;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -144,10 +143,12 @@ public class ClientApiMessageHandlerTest {
                       && arguments.length > 1
                       && arguments[0] != null
                       && arguments[1] != null) {
-                    final ByteBuffer buffer = (ByteBuffer) arguments[0];
+                    /*final ByteBuffer buffer = (ByteBuffer) arguments[0];
                     final long pos = (long) arguments[1];
                     final byte[] bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes);
+                    buffer.get(bytes);*/
+                    final byte[] bytes = (byte[]) arguments[0];
+                    final long pos = (long) arguments[1];
                     distributedLogImpl.append(pos, bytes);
                   }
                   return null;
