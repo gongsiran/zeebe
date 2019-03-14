@@ -98,6 +98,23 @@ public class LogStorageAppender extends Actor {
     }
   }
 
+ /* private long getLastEventPosition(ByteBuffer buffer) {
+    int bufferOffset = 0;
+    DirectBuffer directBuffer = new UnsafeBuffer();
+    directBuffer.wrap(buffer);
+    long lastEventPosition = -1;
+
+    LoggedEventImpl nextEvent = new LoggedEventImpl();
+    int remaining = buffer.position() - bufferOffset;
+    while (remaining > 0) {
+      nextEvent.wrap(directBuffer, bufferOffset);
+      bufferOffset += nextEvent.getFragmentLength();
+      lastEventPosition = nextEvent.getPosition();
+      remaining = buffer.position() - bufferOffset;
+    }
+    return lastEventPosition;
+  }*/
+
   private void discardBlock() {
     blockPeek.markFailed();
     // continue with next block

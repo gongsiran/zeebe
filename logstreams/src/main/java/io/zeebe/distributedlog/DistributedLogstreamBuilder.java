@@ -33,4 +33,6 @@ public abstract class DistributedLogstreamBuilder
   }
 
   public abstract DistributedLogstreamBuilder withLogName(String partitionId);
+
+  public abstract DistributedLogstreamBuilder withPartition(int partitionId);
 }

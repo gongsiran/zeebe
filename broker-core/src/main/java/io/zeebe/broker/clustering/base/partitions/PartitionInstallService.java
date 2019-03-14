@@ -33,9 +33,8 @@ import io.zeebe.broker.clustering.base.topology.PartitionInfo;
 import io.zeebe.broker.logstreams.state.StateStorageFactory;
 import io.zeebe.broker.logstreams.state.StateStorageFactoryService;
 import io.zeebe.distributedlog.impl.DistributedLogstreamPartition;
-import io.zeebe.logstreams.LogStreams;
+import io.zeebe.logstreams.impl.service.LogStreamServiceNames;
 import io.zeebe.logstreams.log.LogStream;
-import io.zeebe.servicecontainer.CompositeServiceBuilder;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceName;
 import io.zeebe.servicecontainer.ServiceStartContext;
@@ -74,59 +73,61 @@ public class PartitionInstallService implements Service<Void> {
     this.startContext = startContext;
 
     final int partitionId = configuration.getPartitionId();
-    final String logName = String.format("partition-%d", partitionId);
+    final String logName = String.format("raft-atomix-partition-%d", partitionId); //FIXME
 
     // TODO: rename/remove?
     final ServiceName<Void> raftInstallServiceName = raftInstallServiceName(partitionId);
 
-    final CompositeServiceBuilder partitionInstall =
-        startContext.createComposite(raftInstallServiceName);
+    /* final CompositeServiceBuilder partitionInstall =
+    startContext.createComposite(raftInstallServiceName);*/
 
     final String snapshotPath = configuration.getSnapshotsDirectory().getAbsolutePath();
 
-    logStreamServiceName =
-        LogStreams.createFsLogStream(partitionId)
-            .logDirectory(configuration.getLogDirectory().getAbsolutePath())
-            .logSegmentSize((int) configuration.getLogSegmentSize())
-            .logName(logName)
-            .snapshotStorage(LogStreams.createFsSnapshotStore(snapshotPath).build())
-            .buildWith(partitionInstall);
+    logStreamServiceName = LogStreamServiceNames.logStreamServiceName(logName);
+    /*
+    LogStreams.createFsLogStream(partitionId)
+        .logDirectory(configuration.getLogDirectory().getAbsolutePath())
+        .logSegmentSize((int) configuration.getLogSegmentSize())
+        .logName(logName)
+        .snapshotStorage(LogStreams.createFsSnapshotStore(snapshotPath).build())
+        .buildWith(partitionInstall);*/
 
     final StateStorageFactoryService stateStorageFactoryService =
         new StateStorageFactoryService(configuration.getStatesDirectory());
     stateStorageFactoryServiceName = stateStorageFactoryServiceName(logName);
-    partitionInstall
+    startContext
         .createService(stateStorageFactoryServiceName, stateStorageFactoryService)
         .install();
 
     final DistributedLogstreamPartition distributedLogstreamPartition =
         new DistributedLogstreamPartition(partitionId);
-    partitionInstall
+    startContext
         .createService(distributedLogPartitionServiceName(logName), distributedLogstreamPartition)
         .dependency(ATOMIX_SERVICE, distributedLogstreamPartition.getAtomixInjector())
         .dependency(ATOMIX_JOIN_SERVICE)
-        .dependency(logStreamServiceName, distributedLogstreamPartition.getLogStreamInjector())
+        // .dependency(logStreamServiceName, distributedLogstreamPartition.getLogStreamInjector())
         .install();
 
     final PartitionLeaderElection leaderElection = new PartitionLeaderElection(partitionId);
     final ServiceName<LeaderElection> partitionLeaderElectionServiceName =
         partitionLeaderElectionServiceName(logName);
-    partitionInstall
+    startContext
         .createService(partitionLeaderElectionServiceName, leaderElection)
         .dependency(ATOMIX_SERVICE, leaderElection.getAtomixInjector())
         .dependency(ATOMIX_JOIN_SERVICE)
+        .dependency(distributedLogPartitionServiceName(logName)) // This is needed because logstream services are created with in the Atomix. Without it there is some deadlock somewhere in the actors.
         .group(LEADERSHIP_SERVICE_GROUP)
         .install();
 
     final PartitionRoleChangeListener roleChangeListener =
         new PartitionRoleChangeListener(partitionInfo);
-    partitionInstall
+    startContext
         .createService(partitionLeadershipEventListenerServiceName(logName), roleChangeListener)
         .dependency(ATOMIX_SERVICE, roleChangeListener.getAtomixInjector())
         .dependency(partitionLeaderElectionServiceName, roleChangeListener.getElectionInjector())
         .dependency(logStreamServiceName, roleChangeListener.getLogStreamInjector())
         .install();
 
-    partitionInstall.install();
+    // partitionInstall.install();
   }
 }

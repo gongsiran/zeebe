@@ -37,7 +37,7 @@ public class DefaultDistributedLogstreamBuilder extends DistributedLogstreamBuil
   public CompletableFuture<DistributedLogstream> buildAsync() {
     return newProxy(
             DistributedLogstreamService.class,
-            new DistributedLogstreamServiceConfig().withLogName(config.getLogName()))
+            new DistributedLogstreamServiceConfig().withLogName(config.getLogName()).withPartition(config.getPartitionId()))
         .thenCompose(
             proxyClient ->
                 new DistributedLogstreamProxy(proxyClient, managementService.getPrimitiveRegistry())
@@ -53,6 +53,12 @@ public class DefaultDistributedLogstreamBuilder extends DistributedLogstreamBuil
   @Override
   public DistributedLogstreamBuilder withLogName(String partitionId) {
     config.withLogName(partitionId);
+    return this;
+  }
+
+  @Override
+  public DistributedLogstreamBuilder withPartition(int partitionId) {
+    config.withPartition(partitionId);
     return this;
   }
 }

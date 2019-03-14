@@ -22,15 +22,18 @@ import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamRo
 import static io.zeebe.logstreams.impl.service.LogStreamServiceNames.logStreamServiceName;
 import static io.zeebe.util.buffer.BufferUtil.bufferAsString;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.distributedlog.impl.DistributedLogstreamPartition;
-import io.zeebe.logstreams.LogStreams;
+import io.zeebe.distributedlog.impl.LogstreamConfig;
 import io.zeebe.logstreams.log.BufferedLogStreamReader;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamWriterImpl;
 import io.zeebe.logstreams.log.LoggedEvent;
 import io.zeebe.protocol.impl.record.RecordMetadata;
+import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.ServiceContainer;
+import io.zeebe.servicecontainer.ServiceName;
 import io.zeebe.test.util.TestUtil;
 import io.zeebe.util.sched.future.ActorFuture;
 import java.io.File;
@@ -62,7 +65,7 @@ public class DistributedLogPartitionRule {
     this.serviceContainer = serviceContainer;
     this.nodeId = nodeId;
     this.partition = partition;
-    this.logName = String.format("%d-%d", this.partition, this.nodeId);
+    this.logName = String.format("partition-%d", this.partition);
     File logDir = new File(rootDirectory.toString(), String.format("log-%d", partition));
     if (!logDir.exists()) {
       Files.createDirectory(logDir.toPath());
@@ -87,26 +90,43 @@ public class DistributedLogPartitionRule {
   }
 
   private void createLogStream() throws IOException {
+    String memberId = String.valueOf(nodeId);
+    LogstreamConfig.putLogDirectory(memberId, dir);
+    LogstreamConfig.putServiceContainer(memberId, serviceContainer);
+
     final DistributedLogstreamPartition log = new DistributedLogstreamPartition(partition);
-    ActorFuture<DistributedLogstreamPartition> installFuture = serviceContainer
-      .createService(distributedLogPartitionServiceName(logName), log)
-      .dependency(DistributedLogRule.ATOMIX_SERVICE_NAME, log.getAtomixInjector())
-      .dependency(logStreamServiceName(logName), log.getLogStreamInjector())
-      .install();
+    ActorFuture<DistributedLogstreamPartition> installFuture =
+        serviceContainer
+            .createService(distributedLogPartitionServiceName(logName), log)
+            .dependency(DistributedLogRule.ATOMIX_SERVICE_NAME, log.getAtomixInjector())
+            // .dependency(logStreamServiceName(logName), log.getLogStreamInjector())
+            .install();
 
-    final ActorFuture<LogStream> logStreamFuture =
-        LogStreams.createFsLogStream(partition)
-            .logName(logName)
-            .deleteOnClose(false)
-            .logDirectory(dir)
-            .serviceContainer(serviceContainer)
-            .build();
-    LOG.info("Build logstreams node {} log {}", nodeId, dir);
-    logStream = logStreamFuture.join();
-    LOG.info("Build logstream completed");
-
+    /*final ActorFuture<LogStream> logStreamFuture =
+            LogStreams.createFsLogStream(partition)
+                .logName(logName)
+                .deleteOnClose(false)
+                .logDirectory(dir)
+                .serviceContainer(serviceContainer)
+                .build();
+        LOG.info("Build logstreams node {} log {}", nodeId, dir);
+        logStream = logStreamFuture.join();
+        LOG.info("Build logstream completed");
+    */
     installFuture.join();
 
+    ServiceName<Void> temp = ServiceName.newServiceName(String.format("test", logName), Void.class);
+    Injector<LogStream> logStreamInjector = new Injector<>();
+
+    serviceContainer
+        .createService(temp, () -> null)
+        .dependency(logStreamServiceName("partition-" + partition), logStreamInjector)
+        .dependency(distributedLogPartitionServiceName(logName))
+        .install()
+        .join();
+
+    logStream = logStreamInjector.getValue();
+    assertThat(logStream).isNotNull();
     reader = new BufferedLogStreamReader(logStream);
   }
 

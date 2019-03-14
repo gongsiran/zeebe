@@ -142,10 +142,10 @@ public class DistributedLogTest {
     node2.stopNode();
     LOG.info("Node 2 stopped");
 
-    /*  final Event event3 = writeEvent("record3");
+    final Event event3 = writeEvent("record3");
         assertEventReplicated(event3, node1);
         assertEventReplicated(event3, node3);
-    */
+
     node2.restartNode();
     LOG.info("Restarting node 2");
     node2.waitUntilNodesJoined();
@@ -153,18 +153,18 @@ public class DistributedLogTest {
 
     final Event event4 = writeEvent("record4");
 
-    //events are replicated in other nodes
+    // events are replicated in other nodes
     assertEventReplicated(event4, node1);
     assertEventReplicated(event4, node3);
-    assertEventsCount(node1, 3);
-    assertEventsCount(node3, 3);
+    assertEventsCount(node1, 4);
+    assertEventsCount(node3, 4);
 
-    writeEvent("record5");
+    // writeEvent("record5");
     LOG.info("replicated on other nodes");
-    //node 2 has recovered
+    // node 2 has recovered
     assertEventReplicated(event2, node2);
     assertEventReplicated(event4, node2);
-    assertEventsCount(node2, 3);
+    assertEventsCount(node2, 4);
   }
 
   private Event writeEvent(String message) {

@@ -16,12 +16,15 @@
 package io.zeebe.distributedlog.impl;
 
 import io.zeebe.logstreams.log.LogStream;
-import java.util.HashMap;
+import io.zeebe.servicecontainer.ServiceContainer;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LogstreamConfig {
 
-  private static final Map<String, LogStream> LOG_STREAMS = new HashMap<>();
+  private static final Map<String, LogStream> LOG_STREAMS = new ConcurrentHashMap<>();
+  private static final Map<String, String> LOG_DIRS = new ConcurrentHashMap<>();
+  private static final Map<String, ServiceContainer> SERVICE_CONTAINERS = new ConcurrentHashMap<>();
 
   public static void putLogStream(String nodeId, String partitionId, LogStream logStream) {
     LOG_STREAMS.put(logPropertyName(nodeId, partitionId), logStream);
@@ -37,5 +40,21 @@ public class LogstreamConfig {
 
   private static String logPropertyName(String nodeId, String partitionId) {
     return String.format("log-%s-%s", nodeId, partitionId);
+  }
+
+  public static void putLogDirectory(String nodeId, String dirPath) {
+    LOG_DIRS.put(nodeId, dirPath);
+  }
+
+  public static String getLogDirectory(String nodeId) {
+    return LOG_DIRS.get(nodeId);
+  }
+
+  public static void putServiceContainer(String nodeId, ServiceContainer serviceContainer) {
+    SERVICE_CONTAINERS.put(nodeId, serviceContainer);
+  }
+
+  public static ServiceContainer getServiceContainer(String nodeId) {
+    return SERVICE_CONTAINERS.get(nodeId);
   }
 }

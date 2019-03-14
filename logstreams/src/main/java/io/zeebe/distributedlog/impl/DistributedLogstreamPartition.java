@@ -20,7 +20,6 @@ import io.atomix.protocols.raft.MultiRaftProtocol;
 import io.zeebe.distributedlog.DistributedLogstream;
 import io.zeebe.distributedlog.DistributedLogstreamBuilder;
 import io.zeebe.distributedlog.DistributedLogstreamType;
-import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
@@ -39,8 +38,8 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
   private final String primitiveName;
   private Atomix atomix;
   private final Injector<Atomix> atomixInjector = new Injector<>();
-  private LogStream logStream;
-  private final Injector<LogStream> logStreamInjector = new Injector<>();
+ // private LogStream logStream;
+ // private final Injector<LogStream> logStreamInjector = new Injector<>();
 
   private static final MultiRaftProtocol PROTOCOL =
       MultiRaftProtocol.builder()
@@ -61,16 +60,17 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
   @Override
   public void start(ServiceStartContext startContext) {
     this.atomix = atomixInjector.getValue();
-    this.logStream = logStreamInjector.getValue();
+  //  this.logStream = logStreamInjector.getValue();
 
-    final String nodeId = atomix.getMembershipService().getLocalMember().id().id();
-    LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
+   // final String nodeId = atomix.getMembershipService().getLocalMember().id().id();
+   // LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
 
     distributedLog =
         atomix
             .<DistributedLogstreamBuilder, DistributedLogstreamConfig, DistributedLogstream>
                 primitiveBuilder(primitiveName, DistributedLogstreamType.instance())
-            .withLogName(partitionName)
+            .withLogName(partitionName) //FIXME not needed anymore
+            .withPartition(partitionId) // FIXME not needed anymore
             .withProtocol(PROTOCOL)
             .build();
   }
@@ -82,8 +82,8 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
 
   @Override
   public void stop(ServiceStopContext stopContext) {
-    LogstreamConfig.removeLogStream(
-        atomix.getMembershipService().getLocalMember().id().id(), partitionName);
+    //LogstreamConfig.removeLogStream(
+     //   atomix.getMembershipService().getLocalMember().id().id(), partitionName);
    // distributedLog.close();
   }
 
@@ -91,7 +91,7 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
     return atomixInjector;
   }
 
-  public Injector<LogStream> getLogStreamInjector() {
+ /* public Injector<LogStream> getLogStreamInjector() {
     return this.logStreamInjector;
-  }
+  }*/
 }

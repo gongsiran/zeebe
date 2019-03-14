@@ -77,7 +77,7 @@ public class LogStreamService implements LogStream, Service<LogStream> {
   private ActorFuture<Dispatcher> writeBufferFuture;
   private ActorFuture<LogStorageAppender> appenderFuture;
   private Dispatcher writeBuffer;
-  private LogStorageAppender appender;;
+  private LogStorageAppender appender;
 
   public LogStreamService(final LogStreamBuilder builder) {
     this.logName = builder.getLogName();

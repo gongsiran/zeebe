@@ -100,7 +100,7 @@ public class BootstrapPartitions implements Service<Void> {
   }
 
   private void installPartition(
-      final ServiceStartContext startContext, final RaftPersistentConfiguration configuration) {
+    final ServiceStartContext startContext, final RaftPersistentConfiguration configuration) {
     final String partitionName = getPartitionName(configuration.getPartitionId());
     final ServiceName<Void> partitionInstallServiceName =
         partitionInstallServiceName(partitionName);

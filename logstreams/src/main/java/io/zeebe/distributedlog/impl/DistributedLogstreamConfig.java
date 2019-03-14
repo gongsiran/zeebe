@@ -22,6 +22,7 @@ import io.zeebe.distributedlog.DistributedLogstreamType;
 /* Define any configration parameters needed for the distributed log primitive.*/
 public class DistributedLogstreamConfig extends PrimitiveConfig<DistributedLogstreamConfig> {
   private String partitionId;
+  private int partition; // partition number
 
   @Override
   public PrimitiveType getType() {
@@ -33,7 +34,16 @@ public class DistributedLogstreamConfig extends PrimitiveConfig<DistributedLogst
     return this;
   }
 
+  public DistributedLogstreamConfig withPartition(int partition) {
+    this.partition = partition;
+    return this;
+  }
+
   public String getLogName() {
     return partitionId;
+  }
+
+  public int getPartitionId() {
+    return partition;
   }
 }

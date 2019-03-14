@@ -71,6 +71,7 @@ public class PartitionRoleChangeListener implements Service<Void>, LeadershipEve
 
   @Override
   public void start(ServiceStartContext startContext) {
+    LOG.info("Starting role change listener");
     this.startContext = startContext;
     atomix = atomixInjector.getValue();
     election = electionInjector.getValue();
