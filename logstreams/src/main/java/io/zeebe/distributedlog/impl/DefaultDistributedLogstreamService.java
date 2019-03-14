@@ -83,7 +83,7 @@ public class DefaultDistributedLogstreamService
       final RaftServiceContext raftServiceContext = (RaftServiceContext) context.get(executor);
       final Field raft = RaftServiceContext.class.getDeclaredField("raft");
       raft.setAccessible(true);
-      RaftContext raftContext = (RaftContext) raft.get(raftServiceContext);
+      final RaftContext raftContext = (RaftContext) raft.get(raftServiceContext);
       name = raftContext.getName();
       raft.setAccessible(false);
       context.setAccessible(false);
@@ -96,9 +96,9 @@ public class DefaultDistributedLogstreamService
   }
 
   private void createLogStream(String logServiceName) {
-    String localmemberId = getLocalMemberId().id();
+    final String localmemberId = getLocalMemberId().id();
     serviceContainer = LogstreamConfig.getServiceContainer(localmemberId);
-    String partitionDirectory =
+    final String partitionDirectory =
         LogstreamConfig.getLogDirectory(localmemberId) + "/" + logServiceName;
 
     final File logDirectory = new File(partitionDirectory, "log");
@@ -107,12 +107,12 @@ public class DefaultDistributedLogstreamService
     final File snapshotDirectory = new File(partitionDirectory, "snapshot");
     snapshotDirectory.mkdir();
 
-    String[] splitted = logServiceName.split("-");
-    int partitionId = Integer.parseInt(splitted[splitted.length - 1]);
+    // A hack to get partitionId from the name
+    final String[] splitted = logServiceName.split("-");
+    final int partitionId = Integer.parseInt(splitted[splitted.length - 1]);
 
     logStream =
-        LogStreams.createFsLogStream(
-                partitionId)
+        LogStreams.createFsLogStream(partitionId)
             .logDirectory(logDirectory.getAbsolutePath())
             .logSegmentSize(config.getLogSegmentSize())
             .logName(logServiceName)
@@ -123,25 +123,14 @@ public class DefaultDistributedLogstreamService
             .join();
     this.logStorage = this.logStream.getLogStorage();
 
-    // Attempt to handle replayed appends
+    // Attempt to handle replayed appends. This is not correct. It still re-writes the last event
+    // replayed.
     final BufferedLogStreamReader reader = new BufferedLogStreamReader(logStream);
     reader.seekToLastEvent();
     lastPosition = reader.getPosition(); // This is not the last commit position
 
     LOG.info("Logstreams created");
   }
-
-  /* private void initialize() {
-    try {
-      this.logStream = LogstreamConfig.getLogStream(getLocalMemberId().id(), logName);
-      this.logStorage = this.logStream.getLogStorage();
-      final BufferedLogStreamReader reader = new BufferedLogStreamReader(logStream);
-      reader.seekToLastEvent();
-      lastPosition = reader.getPosition();
-    } catch (NullPointerException e) {
-      // FIXME
-    }
-  }*/
 
   @Override
   public void append(long commitPosition, byte[] blockBuffer) {

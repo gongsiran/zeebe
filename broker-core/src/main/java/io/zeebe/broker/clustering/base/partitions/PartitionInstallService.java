@@ -73,7 +73,7 @@ public class PartitionInstallService implements Service<Void> {
     this.startContext = startContext;
 
     final int partitionId = configuration.getPartitionId();
-    final String logName = String.format("raft-atomix-partition-%d", partitionId); //FIXME
+    final String logName = String.format("raft-atomix-partition-%d", partitionId); // FIXME
 
     // TODO: rename/remove?
     final ServiceName<Void> raftInstallServiceName = raftInstallServiceName(partitionId);
@@ -115,7 +115,10 @@ public class PartitionInstallService implements Service<Void> {
         .createService(partitionLeaderElectionServiceName, leaderElection)
         .dependency(ATOMIX_SERVICE, leaderElection.getAtomixInjector())
         .dependency(ATOMIX_JOIN_SERVICE)
-        .dependency(distributedLogPartitionServiceName(logName)) // This is needed because logstream services are created with in the Atomix. Without it there is some deadlock somewhere in the actors.
+        .dependency(
+            distributedLogPartitionServiceName(
+                logName)) // This is needed because logstream services are created with in the
+                          // Atomix. Without it there is some deadlock somewhere in the actors.
         .group(LEADERSHIP_SERVICE_GROUP)
         .install();
 

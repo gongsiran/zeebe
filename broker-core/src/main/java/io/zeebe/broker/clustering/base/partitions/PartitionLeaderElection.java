@@ -63,9 +63,8 @@ public class PartitionLeaderElection implements Service<LeaderElection> {
             .withProtocol(PROTOCOL)
             .buildAsync();
 
-    CompletableActorFuture startFuture = new CompletableActorFuture();
-    leaderElectionCompletableFuture
-      .thenAccept(
+    final CompletableActorFuture startFuture = new CompletableActorFuture();
+    leaderElectionCompletableFuture.thenAccept(
         e -> {
           election = e;
           election.run(memberId);

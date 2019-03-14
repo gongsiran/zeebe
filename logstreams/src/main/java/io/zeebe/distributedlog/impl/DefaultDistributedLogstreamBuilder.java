@@ -37,7 +37,9 @@ public class DefaultDistributedLogstreamBuilder extends DistributedLogstreamBuil
   public CompletableFuture<DistributedLogstream> buildAsync() {
     return newProxy(
             DistributedLogstreamService.class,
-            new DistributedLogstreamServiceConfig().withLogName(config.getLogName()).withPartition(config.getPartitionId()))
+            new DistributedLogstreamServiceConfig()
+                .withLogName(config.getLogName())
+                .withPartition(config.getPartitionId()))
         .thenCompose(
             proxyClient ->
                 new DistributedLogstreamProxy(proxyClient, managementService.getPrimitiveRegistry())

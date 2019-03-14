@@ -70,7 +70,8 @@ public class ClusterComponent implements Component {
             networkCfg.getReplication().toSocketAddress(),
             networkCfg.getSubscription().toSocketAddress());
 
-    LogstreamConfig.putServiceContainer(String.valueOf(localMember.getNodeId()), context.getServiceContainer());
+    LogstreamConfig.putServiceContainer(
+        String.valueOf(localMember.getNodeId()), context.getServiceContainer());
 
     final TopologyManagerService topologyManagerService =
         new TopologyManagerService(localMember, brokerConfig.getCluster());

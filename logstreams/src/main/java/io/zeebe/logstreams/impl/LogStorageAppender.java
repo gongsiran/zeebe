@@ -98,7 +98,7 @@ public class LogStorageAppender extends Actor {
     }
   }
 
- /* private long getLastEventPosition(ByteBuffer buffer) {
+  /* private long getLastEventPosition(ByteBuffer buffer) {
     int bufferOffset = 0;
     DirectBuffer directBuffer = new UnsafeBuffer();
     directBuffer.wrap(buffer);

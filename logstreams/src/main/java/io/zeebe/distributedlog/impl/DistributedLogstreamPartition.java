@@ -68,8 +68,7 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
     // final String nodeId = atomix.getMembershipService().getLocalMember().id().id();
     // LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
 
-    // distributedLog =
-    CompletableFuture<DistributedLogstream> distributedLogstreamCompletableFuture =
+    final CompletableFuture<DistributedLogstream> distributedLogstreamCompletableFuture =
         atomix
             .<DistributedLogstreamBuilder, DistributedLogstreamConfig, DistributedLogstream>
                 primitiveBuilder(primitiveName, DistributedLogstreamType.instance())
@@ -78,13 +77,15 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
             .withProtocol(PROTOCOL)
             .buildAsync();
 
-    CompletableActorFuture<Void> startFuture = new CompletableActorFuture<>();
+    final CompletableActorFuture<Void> startFuture = new CompletableActorFuture<>();
 
     distributedLogstreamCompletableFuture.thenAccept(
         log -> {
           distributedLog = log;
           startFuture.complete(null);
         });
+
+    startContext.async(startFuture);
   }
 
   @Override

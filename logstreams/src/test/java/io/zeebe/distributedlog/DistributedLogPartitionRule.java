@@ -50,6 +50,7 @@ public class DistributedLogPartitionRule {
   private final ServiceContainer serviceContainer;
   private final int partition;
   private final int nodeId;
+  private final String dir;
   private LogStream logStream;
   private BufferedLogStreamReader reader;
   private LogStreamWriterImpl writer = new LogStreamWriterImpl();
@@ -57,7 +58,7 @@ public class DistributedLogPartitionRule {
   private final RecordMetadata metadata = new RecordMetadata();
   public static final Logger LOG = LoggerFactory.getLogger("io.zeebe.distributedlog.test");
   private final String logName;
-  private final String dir;
+  // private final String dir;
 
   public DistributedLogPartitionRule(
       ServiceContainer serviceContainer, int nodeId, int partition, Path rootDirectory)
@@ -66,7 +67,7 @@ public class DistributedLogPartitionRule {
     this.nodeId = nodeId;
     this.partition = partition;
     this.logName = String.format("raft-atomix-partition-%d", this.partition);
-    File logDir = new File(rootDirectory.toString(), String.format("log-%d", partition));
+    final File logDir = new File(rootDirectory.toString(), String.format("log-%d", partition));
     if (!logDir.exists()) {
       Files.createDirectory(logDir.toPath());
     }
@@ -90,12 +91,12 @@ public class DistributedLogPartitionRule {
   }
 
   private void createLogStream() throws IOException {
-    String memberId = String.valueOf(nodeId);
+    final String memberId = String.valueOf(nodeId);
     LogstreamConfig.putLogDirectory(memberId, dir);
     LogstreamConfig.putServiceContainer(memberId, serviceContainer);
 
     final DistributedLogstreamPartition log = new DistributedLogstreamPartition(partition);
-    ActorFuture<DistributedLogstreamPartition> installFuture =
+    final ActorFuture<DistributedLogstreamPartition> installFuture =
         serviceContainer
             .createService(distributedLogPartitionServiceName(logName), log)
             .dependency(DistributedLogRule.ATOMIX_SERVICE_NAME, log.getAtomixInjector())
@@ -115,11 +116,12 @@ public class DistributedLogPartitionRule {
     */
     installFuture.join();
 
-    ServiceName<Void> temp = ServiceName.newServiceName(String.format("test-%s", logName), Void.class);
-    Injector<LogStream> logStreamInjector = new Injector<>();
+    final ServiceName<Void> testService =
+        ServiceName.newServiceName(String.format("test-%s", logName), Void.class);
+    final Injector<LogStream> logStreamInjector = new Injector<>();
 
     serviceContainer
-        .createService(temp, () -> null)
+        .createService(testService, () -> null)
         .dependency(logStreamServiceName("raft-atomix-partition-" + partition), logStreamInjector)
         .dependency(distributedLogPartitionServiceName(logName))
         .install()

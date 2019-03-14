@@ -191,7 +191,7 @@ public class DistributedLogRule extends ExternalResource {
 
   protected void waitUntilNodesJoined()
       throws ExecutionException, InterruptedException, TimeoutException {
-    LOG.info("Waiting for node start");
+    LOG.info("Waiting for node {} start", this.nodeId);
     nodeStarted.get(50, TimeUnit.SECONDS);
     LOG.info("Node {} started", this.nodeId);
   }
