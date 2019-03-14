@@ -178,7 +178,7 @@ public class TestStreams {
                   return null;
                 })
         .when(mockDistLog)
-        .append(any(ByteBuffer.class), anyLong());
+        .append(any(), anyLong());
 
     serviceContainer
         .createService(distributedLogPartitionServiceName(name), () -> mockDistLog)

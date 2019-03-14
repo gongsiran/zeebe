@@ -49,10 +49,9 @@ public class DistributedLogstreamProxy
   }
 
   @Override
-  public CompletableFuture<Void> append(
-      String partition, long commitPosition, byte[] buffer) {
-    //final byte[] buffer = new byte[blockBuffer.remaining()];
-   // blockBuffer.get(buffer);
+  public CompletableFuture<Void> append(String partition, long commitPosition, byte[] buffer) {
+    // final byte[] buffer = new byte[blockBuffer.remaining()];
+    // blockBuffer.get(buffer);
 
     return getProxyClient().acceptBy(partition, service -> service.append(commitPosition, buffer));
   }

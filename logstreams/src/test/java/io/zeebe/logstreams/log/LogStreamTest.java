@@ -396,7 +396,7 @@ public class LogStreamTest {
     }
 
     final long writtenEventPosition = position;
-    waitUntil(() -> logStream.getCommitPosition() > writtenEventPosition);
+    waitUntil(() -> logStream.getCommitPosition() >= writtenEventPosition);
 
     return position;
   }

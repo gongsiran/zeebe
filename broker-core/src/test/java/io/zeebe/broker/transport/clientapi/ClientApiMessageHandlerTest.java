@@ -153,7 +153,7 @@ public class ClientApiMessageHandlerTest {
                   return null;
                 })
         .when(mockDistLog)
-        .append(any(ByteBuffer.class), anyLong());
+        .append(any(), anyLong());
 
     serviceContainerRule
         .get()

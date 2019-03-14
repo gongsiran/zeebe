@@ -86,15 +86,12 @@ public class LogStorageAppender extends Actor {
     final MutableDirectBuffer buffer = blockPeek.getBuffer();
 
     try {
-      // CurrentAppenderPosition gives the position of the first event in the buffer. commitPosition
-      // must be > position of the last event in the block.
-
-
       final byte[] bytes = new byte[rawBuffer.remaining()];
       rawBuffer.get(bytes);
 
+      // Commit position is the position of the last event. DistributedLogstream uses this position
+      // to identify duplicate append requests during recovery.
       final long lastEventPosition = getLastEventPosition(bytes);
-     // final long commitPosition = blockPeek.getNextPosition() - 1;
       final long commitPosition = lastEventPosition;
       distributedLog.append(bytes, commitPosition);
       // TODO: handle errors https://github.com/zeebe-io/zeebe/issues/2064
@@ -106,14 +103,15 @@ public class LogStorageAppender extends Actor {
     }
   }
 
+  /* Iterate over the events in buffer and find the position of the last event */
   private long getLastEventPosition(byte[] buffer) {
     int bufferOffset = 0;
-    DirectBuffer directBuffer = new UnsafeBuffer(0, 0);
+    final DirectBuffer directBuffer = new UnsafeBuffer(0, 0);
 
     directBuffer.wrap(buffer);
     long lastEventPosition = -1;
 
-    LoggedEventImpl nextEvent = new LoggedEventImpl();
+    final LoggedEventImpl nextEvent = new LoggedEventImpl();
     int remaining = buffer.length - bufferOffset;
     while (remaining > 0) {
       nextEvent.wrap(directBuffer, bufferOffset);
