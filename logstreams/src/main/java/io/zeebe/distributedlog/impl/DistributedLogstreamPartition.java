@@ -24,7 +24,9 @@ import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.servicecontainer.ServiceStopContext;
+import io.zeebe.util.sched.future.CompletableActorFuture;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +40,8 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
   private final String primitiveName;
   private Atomix atomix;
   private final Injector<Atomix> atomixInjector = new Injector<>();
- // private LogStream logStream;
- // private final Injector<LogStream> logStreamInjector = new Injector<>();
+  // private LogStream logStream;
+  // private final Injector<LogStream> logStreamInjector = new Injector<>();
 
   private static final MultiRaftProtocol PROTOCOL =
       MultiRaftProtocol.builder()
@@ -49,7 +51,8 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
 
   public DistributedLogstreamPartition(int partitionId) {
     this.partitionId = partitionId;
-    primitiveName = String.format("log-partition-%d", partitionId);
+    // primitiveName = String.format("log-partition-%d", partitionId);
+    primitiveName = "distributed-log"; // Use same primitive for all partitions.
     partitionName = DistributedLogstreamName.getPartitionKey(partitionId);
   }
 
@@ -60,19 +63,28 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
   @Override
   public void start(ServiceStartContext startContext) {
     this.atomix = atomixInjector.getValue();
-  //  this.logStream = logStreamInjector.getValue();
+    //  this.logStream = logStreamInjector.getValue();
 
-   // final String nodeId = atomix.getMembershipService().getLocalMember().id().id();
-   // LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
+    // final String nodeId = atomix.getMembershipService().getLocalMember().id().id();
+    // LogstreamConfig.putLogStream(nodeId, partitionName, logStream);
 
-    distributedLog =
+    // distributedLog =
+    CompletableFuture<DistributedLogstream> distributedLogstreamCompletableFuture =
         atomix
             .<DistributedLogstreamBuilder, DistributedLogstreamConfig, DistributedLogstream>
                 primitiveBuilder(primitiveName, DistributedLogstreamType.instance())
-            .withLogName(partitionName) //FIXME not needed anymore
-            .withPartition(partitionId) // FIXME not needed anymore
+            // .withLogName(partitionName) //FIXME not needed anymore
+            // .withPartition(partitionId) // FIXME not needed anymore
             .withProtocol(PROTOCOL)
-            .build();
+            .buildAsync();
+
+    CompletableActorFuture<Void> startFuture = new CompletableActorFuture<>();
+
+    distributedLogstreamCompletableFuture.thenAccept(
+        log -> {
+          distributedLog = log;
+          startFuture.complete(null);
+        });
   }
 
   @Override
@@ -82,16 +94,16 @@ public class DistributedLogstreamPartition implements Service<DistributedLogstre
 
   @Override
   public void stop(ServiceStopContext stopContext) {
-    //LogstreamConfig.removeLogStream(
-     //   atomix.getMembershipService().getLocalMember().id().id(), partitionName);
-   // distributedLog.close();
+    // LogstreamConfig.removeLogStream(
+    //   atomix.getMembershipService().getLocalMember().id().id(), partitionName);
+    // distributedLog.close();
   }
 
   public Injector<Atomix> getAtomixInjector() {
     return atomixInjector;
   }
 
- /* public Injector<LogStream> getLogStreamInjector() {
+  /* public Injector<LogStream> getLogStreamInjector() {
     return this.logStreamInjector;
   }*/
 }

@@ -49,15 +49,11 @@ public class DefaultDistributedLogstreamService
 
   private String logName;
 
-   private final int partition;
-
   private final DistributedLogstreamServiceConfig config;
   private ServiceContainer serviceContainer;
 
   public DefaultDistributedLogstreamService(DistributedLogstreamServiceConfig config) {
     super(DistributedLogstreamType.instance(), DistributedLogstreamClient.class);
-     logName = config.getLogName();
-     partition = config.getPartition();
     this.config = config;
     lastPosition = -1;
   }
@@ -72,7 +68,7 @@ public class DefaultDistributedLogstreamService
         getLocalMemberId().id(),
         logName);
     try {
-      createLogStream(String.format("partition-%d",partition));
+      createLogStream(logName);
     } catch (Exception e) {
       e.printStackTrace();
       throw e;
@@ -102,16 +98,21 @@ public class DefaultDistributedLogstreamService
   private void createLogStream(String logServiceName) {
     String localmemberId = getLocalMemberId().id();
     serviceContainer = LogstreamConfig.getServiceContainer(localmemberId);
-    String partitionDirectory = LogstreamConfig.getLogDirectory(localmemberId) + "/" + logServiceName;
+    String partitionDirectory =
+        LogstreamConfig.getLogDirectory(localmemberId) + "/" + logServiceName;
 
-    final File logDirectory = new File(partitionDirectory, logServiceName);
+    final File logDirectory = new File(partitionDirectory, "log");
     logDirectory.mkdir();
 
-    final File snapshotDirectory = new File(partitionDirectory, logServiceName + "-snapshot");
+    final File snapshotDirectory = new File(partitionDirectory, "snapshot");
     snapshotDirectory.mkdir();
 
+    String[] splitted = logServiceName.split("-");
+    int partitionId = Integer.parseInt(splitted[splitted.length - 1]);
+
     logStream =
-        LogStreams.createFsLogStream(partition) //FIXME: Get partitionId from raftName. OR Do we need partitionId to create logstreams??
+        LogStreams.createFsLogStream(
+                partitionId)
             .logDirectory(logDirectory.getAbsolutePath())
             .logSegmentSize(config.getLogSegmentSize())
             .logName(logServiceName)

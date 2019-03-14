@@ -65,7 +65,7 @@ public class DistributedLogPartitionRule {
     this.serviceContainer = serviceContainer;
     this.nodeId = nodeId;
     this.partition = partition;
-    this.logName = String.format("partition-%d", this.partition);
+    this.logName = String.format("raft-atomix-partition-%d", this.partition);
     File logDir = new File(rootDirectory.toString(), String.format("log-%d", partition));
     if (!logDir.exists()) {
       Files.createDirectory(logDir.toPath());
@@ -115,12 +115,12 @@ public class DistributedLogPartitionRule {
     */
     installFuture.join();
 
-    ServiceName<Void> temp = ServiceName.newServiceName(String.format("test", logName), Void.class);
+    ServiceName<Void> temp = ServiceName.newServiceName(String.format("test-%s", logName), Void.class);
     Injector<LogStream> logStreamInjector = new Injector<>();
 
     serviceContainer
         .createService(temp, () -> null)
-        .dependency(logStreamServiceName("partition-" + partition), logStreamInjector)
+        .dependency(logStreamServiceName("raft-atomix-partition-" + partition), logStreamInjector)
         .dependency(distributedLogPartitionServiceName(logName))
         .install()
         .join();

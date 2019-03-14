@@ -26,6 +26,8 @@ import io.zeebe.servicecontainer.Injector;
 import io.zeebe.servicecontainer.Service;
 import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.servicecontainer.ServiceStopContext;
+import io.zeebe.util.sched.future.CompletableActorFuture;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 
 public class PartitionLeaderElection implements Service<LeaderElection> {
@@ -55,13 +57,22 @@ public class PartitionLeaderElection implements Service<LeaderElection> {
 
     LOG.info("Creating leader election for partition {} in node {}", partitionId, memberId);
 
-    election =
+    final CompletableFuture<LeaderElection<String>> leaderElectionCompletableFuture =
         atomix
             .<String>leaderElectionBuilder(DistributedLogstreamName.getPartitionKey(partitionId))
             .withProtocol(PROTOCOL)
-            .build();
+            .buildAsync();
 
-    election.run(memberId);
+    CompletableActorFuture startFuture = new CompletableActorFuture();
+    leaderElectionCompletableFuture
+      .thenAccept(
+        e -> {
+          election = e;
+          election.run(memberId);
+          startFuture.complete(null);
+        });
+
+    startContext.async(startFuture, true);
   }
 
   @Override
