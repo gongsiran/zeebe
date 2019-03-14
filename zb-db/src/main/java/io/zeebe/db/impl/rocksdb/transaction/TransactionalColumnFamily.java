@@ -45,7 +45,7 @@ class TransactionalColumnFamily<
       ValueType valueInstance) {
     this.dbContext = dbContext;
     this.transactionDb = transactionDb;
-    this.handle = this.transactionDb.getColumnFamilyHandle(columnFamily);
+    this.handle = transactionDb.getColumnFamilyHandle(columnFamily);
     this.keyInstance = keyInstance;
     this.valueInstance = valueInstance;
   }

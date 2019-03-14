@@ -42,9 +42,11 @@ public class LogBlockIndexWriterService implements Service<LogBlockIndexWriter> 
   @Override
   public void start(ServiceStartContext startContext) {
     final LogStorage logStorage = logStorageInjector.getValue();
+    final DbContext dbContext = new DbContext();
+
     final LogBlockIndex logBlockIndex =
         new LogBlockIndex(
-            new DbContext(),
+            dbContext,
             ZeebeRocksDbFactory.newFactory(LogBlockColumnFamilies.class),
             logStreamBuilder.getStateStorage());
     final ActorScheduler scheduler = startContext.getScheduler();
@@ -55,6 +57,7 @@ public class LogBlockIndexWriterService implements Service<LogBlockIndexWriter> 
             logStreamBuilder,
             logStorage,
             logBlockIndex,
+            dbContext,
             scheduler.getMetricsManager());
 
     startContext.async(scheduler.submitActor(logBlockIndexWriter, true, SchedulingHints.ioBound()));

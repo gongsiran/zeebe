@@ -17,6 +17,7 @@ package io.zeebe.db.impl.rocksdb;
 
 import io.zeebe.db.TransactionOperation;
 import io.zeebe.db.impl.rocksdb.transaction.ZeebeTransaction;
+import io.zeebe.util.Loggers;
 import java.util.function.Function;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
@@ -92,6 +93,7 @@ public class DbContext {
     } catch (Exception e) {
       try {
         rocksTransaction.rollback();
+        Loggers.ACTOR_LOGGER.error("Unexpected error (transaction rolled back) ", e);
       } catch (RocksDBException e1) {
         throw new RuntimeException("Unexpected error occurred when rolling back transaction ", e);
       }

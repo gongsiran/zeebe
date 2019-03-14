@@ -176,7 +176,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
 
   //  private void runInNewTransaction(TransactionOperation operations) throws Exception {
   //    try (WriteOptions options = new WriteOptions()) {
-  //      currentTransaction = new ZeebeTransaction(reference.beginTransaction(options));
+  //      currentTransaction = new ZeebeTransaction(transactionDb.beginTransaction(options));
   //
   //      operations.run();
   //
@@ -461,6 +461,6 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
           }
         });
 
-    reference.close();
+    reference.getTransactionDB().close();
   }
 }

@@ -23,12 +23,14 @@ import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.log.index.LogBlockColumnFamilies;
 import io.zeebe.logstreams.impl.log.index.LogBlockIndex;
 import io.zeebe.logstreams.state.StateStorage;
+import io.zeebe.util.FileUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.rocksdb.RocksDBException;
 
 public class LogBlockIndexTest {
 
@@ -40,6 +42,7 @@ public class LogBlockIndexTest {
   @Rule public ExpectedException exception = ExpectedException.none();
   @Rule public TemporaryFolder runtimeDirectory = new TemporaryFolder();
   @Rule public TemporaryFolder snapshotDirectory = new TemporaryFolder();
+  private DbContext dbContext;
 
   @Before
   public void setup() throws Exception {
@@ -56,7 +59,8 @@ public class LogBlockIndexTest {
     final StateStorage stateStorage =
         new StateStorage(runtimeDirectory.getRoot(), snapshotDirectory.getRoot());
 
-    blockIndex = new LogBlockIndex(new DbContext(), dbFactory, stateStorage);
+    dbContext = new DbContext();
+    blockIndex = new LogBlockIndex(dbContext, dbFactory, stateStorage);
     blockIndex.recoverFromSnapshot();
     blockIndex.openDb();
   }
@@ -74,7 +78,7 @@ public class LogBlockIndexTest {
   }
 
   @Test
-  public void shouldAddBlocks() {
+  public void shouldAddBlocks() throws RocksDBException {
     final int numBlocks = 10;
 
     // when
@@ -223,7 +227,8 @@ public class LogBlockIndexTest {
 
     // when
     blockIndex.closeDb(); // close and reopen DB
-    blockIndex.recoverFromSnapshot();
+    FileUtil.deleteFolder(runtimeDirectory.getRoot().getAbsolutePath());
+    runtimeDirectory.create();
     startBlockIndexDb();
 
     // then
@@ -232,10 +237,11 @@ public class LogBlockIndexTest {
   }
 
   // Adds blocks and returns the last added position
-  private long addBlocks(int numBlocks) {
+  private long addBlocks(int numBlocks) throws RocksDBException {
     for (int blockPos = 0; blockPos < numBlocks * ENTRY_OFFSET; blockPos += ENTRY_OFFSET) {
       final int address = blockPos * ADDRESS_MULTIPLIER;
       blockIndex.addBlock(blockPos, address);
+      dbContext.getCurrentTransaction().commit();
     }
 
     return (numBlocks - 1) * ENTRY_OFFSET;
