@@ -1,6 +1,6 @@
 # Variables
 
-Variables are part of a workflow instance and represents the data the instance. A variable has a name and a JSON value. The visibility and the lifespan of a variable is defined by the variable scope.
+Variables are part of a workflow instance and represents the data the instance. A variable has a name and a JSON value. The visibility of a variable is defined by its variable scope.
 
 ## Variable Values
 
@@ -9,9 +9,9 @@ The value of a variable is stored as JSON object. It must have one of the follow
 * String
 * Number
 * Boolean
-* Null
 * Array
 * Document/Object
+* Null
 
 ## Access Variables
 
@@ -24,6 +24,10 @@ Variable `order` has the value `{"id": "order-123", "totalPrice": 25.0}`.
 The nested value can be accessed with the expression `order.id`.
 
 ## Variable Scopes
+
+> TODO
+
+## Variable Propagation
 
 > TODO
 
