@@ -243,15 +243,13 @@ public class LogBlockIndexWriter extends Actor {
             currentBlockEventPosition,
             currentBlockAddress);
 
-        dbContext.runInTransaction(
-            () -> blockIndex.addBlock(currentBlockEventPosition, currentBlockAddress));
+        blockIndex.addBlock(currentBlockEventPosition, currentBlockAddress);
 
         lastBlockAddress = currentBlockAddress;
         lastBlockEventPosition = currentBlockEventPosition;
       }
 
       resetCurrentBlock();
-
       currentRunnable = readLogStorage;
     } else {
       // try again when commit position is updated

@@ -31,6 +31,7 @@ import org.agrona.DirectBuffer;
 
 public class MessageStartEventSubscriptionState {
 
+  private final DbContext dbContext;
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
 
   private final DbString messageName;
@@ -50,6 +51,7 @@ public class MessageStartEventSubscriptionState {
 
   public MessageStartEventSubscriptionState(
       final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     this.zeebeDb = zeebeDb;
 
     messageName = new DbString();
@@ -79,7 +81,7 @@ public class MessageStartEventSubscriptionState {
     subscriptionRecord.setMessageName(subscription.getMessageName());
     subscriptionRecord.setWorkflowKey(subscription.getWorkflowKey());
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           messageName.wrapBuffer(subscription.getMessageName());
           workflowKey.wrapLong(subscription.getWorkflowKey());

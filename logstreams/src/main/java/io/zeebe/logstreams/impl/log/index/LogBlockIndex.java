@@ -39,16 +39,17 @@ import java.util.concurrent.atomic.AtomicLong;
  * requested.
  */
 public class LogBlockIndex implements SnapshotSupport {
+  public static final int VALUE_NOT_FOUND = -1;
 
   private final StateSnapshotController stateSnapshotController;
   private final DbContext dbContext;
-  private ColumnFamily<DbLong, DbLong> blockPositionToAddress;
-
-  private final DbLong blockPosition = new DbLong();
-  private final DbLong blockAddress = new DbLong();
   private ZeebeDb db;
 
-  private long lastVirtualPosition = -1;
+  private ColumnFamily<DbLong, DbLong> blockPositionToAddress;
+  private final DbLong blockPosition = new DbLong();
+  private final DbLong blockAddress = new DbLong();
+
+  private long lastVirtualPosition = VALUE_NOT_FOUND;
 
   /**
    * Creates an instance of a LogBlockIndex for a given DB (multiple block indexes can be
@@ -95,8 +96,8 @@ public class LogBlockIndex implements SnapshotSupport {
    */
   public long lookupBlockAddress(final long entryPosition) {
     final long blockPosition = lookupBlockPosition(entryPosition);
-    if (blockPosition == -1) {
-      return -1;
+    if (blockPosition == VALUE_NOT_FOUND) {
+      return VALUE_NOT_FOUND;
     }
 
     this.blockPosition.wrapLong(blockPosition);
@@ -114,7 +115,7 @@ public class LogBlockIndex implements SnapshotSupport {
    *     position
    */
   public long lookupBlockPosition(final long entryPosition) {
-    final AtomicLong blockPosition = new AtomicLong(-1);
+    final AtomicLong blockPosition = new AtomicLong(VALUE_NOT_FOUND);
 
     blockPositionToAddress.whileTrue(
         (key, val) -> {

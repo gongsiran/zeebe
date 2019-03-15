@@ -20,6 +20,7 @@ import io.zeebe.db.DbKey;
 import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
 import io.zeebe.db.impl.rocksdb.DbContext;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.agrona.DirectBuffer;
@@ -57,7 +58,7 @@ class TransactionalColumnFamily<
 
   @Override
   public void put(DbContext dbContext, KeyType key, ValueType value) {
-    transactionDb.put(dbContext, handle, key, value);
+    dbContext.runInTransaction(() -> transactionDb.put(dbContext, handle, key, value));
   }
 
   @Override
@@ -67,12 +68,20 @@ class TransactionalColumnFamily<
 
   @Override
   public ValueType get(final DbContext dbContext, final KeyType key) {
-    final DirectBuffer valueBuffer = transactionDb.get(dbContext, handle, key);
-    if (valueBuffer != null) {
-      valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity());
-      return valueInstance;
-    }
-    return null;
+    final AtomicBoolean foundValue = new AtomicBoolean();
+
+    dbContext.runInTransaction(
+        () -> {
+          final DirectBuffer valueBuffer = transactionDb.get(dbContext, handle, key);
+          if (valueBuffer != null) {
+            valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity());
+            foundValue.set(true);
+          } else {
+            foundValue.set(false);
+          }
+        });
+
+    return foundValue.get() ? valueInstance : null;
   }
 
   @Override
@@ -82,7 +91,8 @@ class TransactionalColumnFamily<
 
   @Override
   public void forEach(final DbContext dbContext, final Consumer<ValueType> consumer) {
-    transactionDb.foreach(dbContext, handle, valueInstance, consumer);
+    dbContext.runInTransaction(
+        () -> transactionDb.foreach(dbContext, handle, valueInstance, consumer));
   }
 
   @Override
@@ -92,7 +102,8 @@ class TransactionalColumnFamily<
 
   @Override
   public void forEach(final DbContext dbContext, final BiConsumer<KeyType, ValueType> consumer) {
-    transactionDb.foreach(dbContext, handle, keyInstance, valueInstance, consumer);
+    dbContext.runInTransaction(
+        () -> transactionDb.foreach(dbContext, handle, keyInstance, valueInstance, consumer));
   }
 
   @Override
@@ -103,7 +114,8 @@ class TransactionalColumnFamily<
   @Override
   public void whileTrue(
       final DbContext dbContext, final KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    transactionDb.whileTrue(dbContext, handle, keyInstance, valueInstance, visitor);
+    dbContext.runInTransaction(
+        () -> transactionDb.whileTrue(dbContext, handle, keyInstance, valueInstance, visitor));
   }
 
   @Override
@@ -116,8 +128,10 @@ class TransactionalColumnFamily<
       final DbContext dbContext,
       final DbKey keyPrefix,
       final BiConsumer<KeyType, ValueType> visitor) {
-    transactionDb.whileEqualPrefix(
-        dbContext, handle, keyPrefix, keyInstance, valueInstance, visitor);
+    dbContext.runInTransaction(
+        () ->
+            transactionDb.whileEqualPrefix(
+                dbContext, handle, keyPrefix, keyInstance, valueInstance, visitor));
   }
 
   @Override
@@ -130,8 +144,10 @@ class TransactionalColumnFamily<
       final DbContext dbContext,
       final DbKey keyPrefix,
       final KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    transactionDb.whileEqualPrefix(
-        dbContext, handle, keyPrefix, keyInstance, valueInstance, visitor);
+    dbContext.runInTransaction(
+        () ->
+            transactionDb.whileEqualPrefix(
+                dbContext, handle, keyPrefix, keyInstance, valueInstance, visitor));
   }
 
   @Override
@@ -141,7 +157,7 @@ class TransactionalColumnFamily<
 
   @Override
   public void delete(final DbContext dbContext, final KeyType key) {
-    transactionDb.delete(dbContext, handle, key);
+    dbContext.runInTransaction(() -> transactionDb.delete(dbContext, handle, key));
   }
 
   @Override
@@ -151,7 +167,9 @@ class TransactionalColumnFamily<
 
   @Override
   public boolean exists(final DbContext dbContext, final KeyType key) {
-    return transactionDb.exists(dbContext, handle, key);
+    final AtomicBoolean exists = new AtomicBoolean();
+    dbContext.runInTransaction(() -> exists.set(transactionDb.exists(dbContext, handle, key)));
+    return exists.get();
   }
 
   @Override
@@ -161,6 +179,8 @@ class TransactionalColumnFamily<
 
   @Override
   public boolean isEmpty(final DbContext dbContext) {
-    return transactionDb.isEmpty(dbContext, handle);
+    final AtomicBoolean isEmpty = new AtomicBoolean();
+    dbContext.runInTransaction(() -> isEmpty.set(transactionDb.isEmpty(dbContext, handle)));
+    return isEmpty.get();
   }
 }

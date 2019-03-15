@@ -45,9 +45,11 @@ public class WorkflowInstanceSubscriptionState {
   private final DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbString>> sentTimeCompositeKey;
   private final ColumnFamily<DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbString>>, DbNil>
       sentTimeColumnFamily;
+  private final DbContext dbContext;
 
   public WorkflowInstanceSubscriptionState(
       final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     elementInstanceKey = new DbLong();
     messageName = new DbString();
     elementKeyAndMessageName = new DbCompositeKey<>(elementInstanceKey, messageName);
@@ -73,7 +75,7 @@ public class WorkflowInstanceSubscriptionState {
   }
 
   public void put(final WorkflowInstanceSubscription subscription) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           wrapSubscriptionKeys(subscription.getElementInstanceKey(), subscription.getMessageName());
 
@@ -134,7 +136,7 @@ public class WorkflowInstanceSubscriptionState {
   }
 
   public void updateSentTime(final WorkflowInstanceSubscription subscription, long sentTime) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           wrapSubscriptionKeys(subscription.getElementInstanceKey(), subscription.getMessageName());
 
@@ -171,7 +173,7 @@ public class WorkflowInstanceSubscriptionState {
   }
 
   public void remove(final WorkflowInstanceSubscription subscription) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           wrapSubscriptionKeys(subscription.getElementInstanceKey(), subscription.getMessageName());
 

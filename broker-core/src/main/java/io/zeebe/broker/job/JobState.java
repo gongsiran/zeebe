@@ -57,8 +57,10 @@ public class JobState {
   private final DbCompositeKey<DbLong, DbLong> deadlineJobKey;
   private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil> deadlinesColumnFamily;
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
+  private final DbContext dbContext;
 
   public JobState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     jobRecordToRead = new UnpackedObjectValue();
     jobRecordToRead.wrapObject(new JobRecord());
 
@@ -88,7 +90,7 @@ public class JobState {
 
   public void create(final long key, final JobRecord record) {
     final DirectBuffer type = record.getType();
-    zeebeDb.transaction(() -> createJob(key, record, type));
+    dbContext.runInTransaction(() -> createJob(key, record, type));
   }
 
   private void createJob(long key, JobRecord record, DirectBuffer type) {
@@ -103,7 +105,7 @@ public class JobState {
 
     validateParameters(type, deadline);
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           updateJobRecord(key, record);
 
@@ -121,7 +123,7 @@ public class JobState {
     final long deadline = record.getDeadline();
     validateParameters(type, deadline);
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           createJob(key, record, type);
 
@@ -133,7 +135,7 @@ public class JobState {
     final DirectBuffer type = record.getType();
     final long deadline = record.getDeadline();
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           jobKey.wrapLong(key);
           jobsColumnFamily.delete(jobKey);
@@ -152,7 +154,7 @@ public class JobState {
 
     validateParameters(type, deadline);
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           updateJobRecord(key, updatedValue);
 
@@ -175,7 +177,7 @@ public class JobState {
   public void resolve(long key, final JobRecord updatedValue) {
     final DirectBuffer type = updatedValue.getType();
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           updateJobRecord(key, updatedValue);
           updateJobState(State.ACTIVATABLE);

@@ -86,7 +86,6 @@ public class StreamProcessorController extends Actor {
   private boolean suspended = false;
 
   private StreamProcessorMetrics metrics;
-  private ZeebeDb zeebeDb;
 
   public StreamProcessorController(final StreamProcessorContext context) {
     this.streamProcessorContext = context;
@@ -136,13 +135,12 @@ public class StreamProcessorController extends Actor {
     logStreamWriter.wrap(logStream);
 
     try {
-
       snapshotPosition = recoverFromSnapshot(logStream.getCommitPosition(), logStream.getTerm());
       lastSourceEventPosition = seekFromSnapshotPositionToLastSourceEvent();
 
-      zeebeDb = snapshotController.openDb();
-
+      final ZeebeDb zeebeDb = snapshotController.openDb();
       dbContext.setTransactionProvider(zeebeDb::getTransaction);
+
       streamProcessor = streamProcessorFactory.createProcessor(zeebeDb, dbContext);
       streamProcessor.onOpen(streamProcessorContext);
     } catch (final Exception e) {

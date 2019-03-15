@@ -29,6 +29,7 @@ import org.agrona.DirectBuffer;
 
 public class MessageSubscriptionState {
 
+  private final DbContext dbContext;
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
 
   // (elementInstanceKey, messageName) => MessageSubscription
@@ -54,6 +55,7 @@ public class MessageSubscriptionState {
       messageNameAndCorrelationKeyColumnFamily;
 
   public MessageSubscriptionState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     this.zeebeDb = zeebeDb;
 
     elementInstanceKey = new DbLong();
@@ -95,7 +97,7 @@ public class MessageSubscriptionState {
   }
 
   public void put(final MessageSubscription subscription) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           elementInstanceKey.wrapLong(subscription.getElementInstanceKey());
           messageName.wrapBuffer(subscription.getMessageName());
@@ -149,7 +151,7 @@ public class MessageSubscriptionState {
   }
 
   public void updateSentTime(final MessageSubscription subscription, long sentTime) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           elementInstanceKey.wrapLong(subscription.getElementInstanceKey());
           messageName.wrapBuffer(subscription.getMessageName());
@@ -200,7 +202,7 @@ public class MessageSubscriptionState {
   }
 
   public void remove(final MessageSubscription subscription) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           subscriptionColumnFamily.delete(elementKeyAndMessageName);
 

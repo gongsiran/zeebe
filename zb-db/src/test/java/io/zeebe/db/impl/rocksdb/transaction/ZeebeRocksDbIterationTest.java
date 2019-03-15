@@ -45,7 +45,6 @@ public class ZeebeRocksDbIterationTest {
   private DbLong firstKey;
   private DbLong secondKey;
   private DbCompositeKey<DbLong, DbLong> compositeKey;
-  private DbContext dbContext;
 
   @Before
   public void setup() throws Exception {
@@ -55,7 +54,7 @@ public class ZeebeRocksDbIterationTest {
     firstKey = new DbLong();
     secondKey = new DbLong();
     compositeKey = new DbCompositeKey<>(firstKey, secondKey);
-    dbContext = new DbContext();
+    DbContext dbContext = new DbContext();
     dbContext.setTransactionProvider(zeebeDb::getTransaction);
     columnFamily =
         zeebeDb.createColumnFamily(
@@ -74,7 +73,7 @@ public class ZeebeRocksDbIterationTest {
             })
         .when(zeebeDb)
         .newIterator(
-            dbContext.getCurrentTransaction(), Mockito.anyLong(), Mockito.any(ReadOptions.class));
+            Mockito.any(ZeebeTransaction.class), Mockito.anyLong(), Mockito.any(ReadOptions.class));
 
     final long prefixes = 3;
     final long suffixes = 5;

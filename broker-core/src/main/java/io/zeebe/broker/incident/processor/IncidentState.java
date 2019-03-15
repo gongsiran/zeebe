@@ -29,6 +29,7 @@ import java.util.function.ObjLongConsumer;
 public class IncidentState {
   public static final int MISSING_INCIDENT = -1;
 
+  private final DbContext dbContext;
   private final ZeebeDb zeebeDb;
 
   /** incident key -> incident record */
@@ -51,6 +52,7 @@ public class IncidentState {
   private final ColumnFamily<DbLong, DbLong> jobIncidentColumnFamily;
 
   public IncidentState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     this.zeebeDb = zeebeDb;
 
     incidentKey = new DbLong();
@@ -75,7 +77,7 @@ public class IncidentState {
   }
 
   public void createIncident(long incidentKey, IncidentRecord incident) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           this.incidentKey.wrapLong(incidentKey);
           this.incidentRecordToWrite.wrapObject(incident);
@@ -105,7 +107,7 @@ public class IncidentState {
     final IncidentRecord incidentRecord = getIncidentRecord(key);
 
     if (incidentRecord != null) {
-      zeebeDb.transaction(
+      dbContext.runInTransaction(
           () -> {
             incidentColumnFamily.delete(incidentKey);
 

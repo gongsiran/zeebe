@@ -30,7 +30,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.rocksdb.RocksDBException;
 
 public class LogBlockIndexTest {
 
@@ -78,7 +77,7 @@ public class LogBlockIndexTest {
   }
 
   @Test
-  public void shouldAddBlocks() throws RocksDBException {
+  public void shouldAddBlocks() {
     final int numBlocks = 10;
 
     // when
@@ -237,11 +236,10 @@ public class LogBlockIndexTest {
   }
 
   // Adds blocks and returns the last added position
-  private long addBlocks(int numBlocks) throws RocksDBException {
+  private long addBlocks(int numBlocks) {
     for (int blockPos = 0; blockPos < numBlocks * ENTRY_OFFSET; blockPos += ENTRY_OFFSET) {
       final int address = blockPos * ADDRESS_MULTIPLIER;
       blockIndex.addBlock(blockPos, address);
-      dbContext.getCurrentTransaction().commit();
     }
 
     return (numBlocks - 1) * ENTRY_OFFSET;

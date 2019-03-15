@@ -81,8 +81,10 @@ public class MessageState {
   private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil> correlatedMessageColumnFamily;
 
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
+  private final DbContext dbContext;
 
   public MessageState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     messageKey = new DbLong();
     message = new Message();
     messageColumnFamily =
@@ -118,7 +120,7 @@ public class MessageState {
   }
 
   public void put(final Message message) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           messageKey.wrapLong(message.getKey());
           messageColumnFamily.put(messageKey, message);
@@ -199,7 +201,7 @@ public class MessageState {
       return;
     }
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           messageKey.wrapLong(message.getKey());
           messageColumnFamily.delete(messageKey);

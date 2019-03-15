@@ -17,20 +17,19 @@ package io.zeebe.db.impl.rocksdb;
 
 import io.zeebe.db.TransactionOperation;
 import io.zeebe.db.impl.rocksdb.transaction.ZeebeTransaction;
-import io.zeebe.util.Loggers;
 import java.util.function.Function;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.WriteOptions;
 
 // TODO: write class documentation
 public class DbContext {
 
+  public static final String TRANSACTION_ERROR =
+      "Unexpected error occurred during RocksDB transaction.";
   private Function<WriteOptions, Transaction> transactionProvider;
-  private WriteOptions writeOptions = null;
   private ZeebeTransaction currentZeebeTransaction;
 
   private final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
@@ -44,13 +43,7 @@ public class DbContext {
   private final ExpandableArrayBuffer[] prefixKeyBuffers =
       new ExpandableArrayBuffer[] {new ExpandableArrayBuffer(), new ExpandableArrayBuffer()};
 
-  public DbContext() {
-    // writeOptions = new WriteOptions(); UnsatisfiedLinkError (RocksDb hasn't been loaded probably)
-  }
-
-  public DbContext(final WriteOptions writeOptions) {
-    this.writeOptions = writeOptions;
-  }
+  public DbContext() {}
 
   public ExpandableArrayBuffer getKeyBuffer() {
     return keyBuffer;
@@ -72,10 +65,20 @@ public class DbContext {
     return prefixKeyBuffer;
   }
 
-  public ZeebeTransaction getCurrentTransaction() {
+  // TODO: only used by TransactionDb - delegate?
+  public ZeebeTransaction getTransaction() {
     if (currentZeebeTransaction == null) {
-      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(getWriteOptions()));
+      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(new WriteOptions()));
     }
+
+    return currentZeebeTransaction;
+  }
+
+  public ZeebeTransaction getTransaction(WriteOptions options) {
+    if (currentZeebeTransaction == null) {
+      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(options));
+    }
+
     return currentZeebeTransaction;
   }
 
@@ -85,27 +88,36 @@ public class DbContext {
   }
 
   public void runInTransaction(TransactionOperation operations) {
-    final Transaction rocksTransaction = transactionProvider.apply(getWriteOptions());
+    if (currentZeebeTransaction != null) {
+      runInExistingTransaction(operations);
+    } else {
+      runInNewTransaction(operations);
+    }
+  }
+
+  private void runInNewTransaction(final TransactionOperation operations) {
     try {
-      currentZeebeTransaction = new ZeebeTransaction(rocksTransaction);
-      operations.run();
-      rocksTransaction.commit();
+      try (final WriteOptions options = new WriteOptions()) {
+        final ZeebeTransaction transaction = getTransaction(options);
+        operations.run();
+        transaction.commit();
+      }
     } catch (Exception e) {
-      try {
-        rocksTransaction.rollback();
-        Loggers.ACTOR_LOGGER.error("Unexpected error (transaction rolled back) ", e);
-      } catch (RocksDBException e1) {
-        throw new RuntimeException("Unexpected error occurred when rolling back transaction ", e);
+      throw new RuntimeException(TRANSACTION_ERROR, e);
+    } finally {
+      if (currentZeebeTransaction != null) {
+        currentZeebeTransaction.close();
+        currentZeebeTransaction = null;
       }
     }
   }
 
-  private WriteOptions getWriteOptions() {
-    if (writeOptions == null) {
-      writeOptions = new WriteOptions();
+  private void runInExistingTransaction(TransactionOperation operations) {
+    try {
+      operations.run();
+    } catch (Exception e) {
+      throw new RuntimeException(TRANSACTION_ERROR);
     }
-
-    return writeOptions;
   }
 
   public int getActivePrefixIterations() {

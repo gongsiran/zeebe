@@ -606,7 +606,6 @@ public class StreamProcessorControllerTest {
             .getController();
 
     // given
-
     changeMockInActorContext(
         () ->
             when(eventProcessor.writeEvent(any()))

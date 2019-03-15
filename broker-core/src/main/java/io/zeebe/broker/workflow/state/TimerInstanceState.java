@@ -39,11 +39,13 @@ public class TimerInstanceState {
       dueDateColumnFamily;
   private final DbLong dueDateKey;
   private final DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbLong>> dueDateCompositeKey;
+  private final DbContext dbContext;
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
 
   private long nextDueDate;
 
   public TimerInstanceState(final DbContext dbContext, ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this.dbContext = dbContext;
     this.zeebeDb = zeebeDb;
 
     timerInstance = new TimerInstance();
@@ -62,7 +64,7 @@ public class TimerInstanceState {
   }
 
   public void put(TimerInstance timer) {
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           timerKey.wrapLong(timer.getKey());
           elementInstanceKey.wrapLong(timer.getElementInstanceKey());
@@ -121,7 +123,7 @@ public class TimerInstanceState {
 
   public void remove(TimerInstance timer) {
 
-    zeebeDb.transaction(
+    dbContext.runInTransaction(
         () -> {
           elementInstanceKey.wrapLong(timer.getElementInstanceKey());
           timerKey.wrapLong(timer.getKey());
