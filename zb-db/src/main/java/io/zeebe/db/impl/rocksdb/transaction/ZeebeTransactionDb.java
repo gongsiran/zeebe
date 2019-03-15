@@ -337,7 +337,7 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       KeyType keyInstance,
       ValueType valueInstance,
       KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    int previousActiveIterations = dbContext.getActivePrefixIterations();
+    final int previousActiveIterations = dbContext.getActivePrefixIterations();
     final ExpandableArrayBuffer[] prefixKeyBuffers = dbContext.getPrefixKeyBuffers();
 
     if (previousActiveIterations + 1 > prefixKeyBuffers.length) {

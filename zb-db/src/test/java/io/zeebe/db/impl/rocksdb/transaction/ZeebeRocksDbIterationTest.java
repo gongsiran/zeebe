@@ -54,7 +54,7 @@ public class ZeebeRocksDbIterationTest {
     firstKey = new DbLong();
     secondKey = new DbLong();
     compositeKey = new DbCompositeKey<>(firstKey, secondKey);
-    DbContext dbContext = new DbContext();
+    final DbContext dbContext = new DbContext();
     dbContext.setTransactionProvider(zeebeDb::getTransaction);
     columnFamily =
         zeebeDb.createColumnFamily(

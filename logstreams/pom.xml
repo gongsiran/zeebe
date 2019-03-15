@@ -60,12 +60,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.rocksdb</groupId>
-      <artifactId>rocksdbjni</artifactId>
-      <version>5.17.2</version>
-    </dependency>
-
-    <dependency>
       <groupId>io.zeebe</groupId>
       <artifactId>zb-test-util</artifactId>
       <scope>test</scope>
