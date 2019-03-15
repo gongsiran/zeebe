@@ -44,7 +44,6 @@
     * [Workflow Lifecycles](reference/workflow-lifecycles.md)
     * [Variables](reference/variables.md)
     * [Conditions](reference/conditions.md)
-    * [Variable Mapping](reference/json-payload-mapping.md)
     * [Message Correlation](reference/message-correlation.md)
     * [Incidents](reference/incidents.md)
     * [Partitions](reference/partitions.md)

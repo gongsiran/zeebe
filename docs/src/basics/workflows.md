@@ -24,13 +24,11 @@ Every job worker can read the current payload and modify it when completing a jo
 
 ## Data-based Conditions
 
-Some workflows do not always execute the same tasks but need to choose different tasks based on payload and conditions:
+Some workflows do not always execute the same tasks but need to choose different tasks based on variables and conditions:
 
 ![data-conditions](/basics/workflows-data-based-conditions.png)
 
 The diamond shape with the "X" in the middle is an element indicating that the workflow decides to take one of many paths.
-
-Conditions use [JSON Path](reference/json-conditions.html) to extract properties and values from the current payload document.
 
 ## Events
 
@@ -38,7 +36,7 @@ Events represent things that happen. A workflow can react to events (catching ev
 
 ![workflow](/basics/workflow-events.png)
 
-There are different types of events such as message or timer. We cover events in more detail [in the "BPMN Workflows" section of the docs](bpmn-workflows/events.html).
+There are different types of events such as message or timer.
 
 ## Fork / Join Concurrency
 

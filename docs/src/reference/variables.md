@@ -27,9 +27,11 @@ The nested value can be accessed with the expression `order.id`.
 
 > TODO
 
-## Variable Propagation
+### Variable Propagation
 
 > TODO
+
+### Local Variables
 
 ## Input/Output Variable Mapping
 
