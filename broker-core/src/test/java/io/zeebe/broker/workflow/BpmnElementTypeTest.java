@@ -389,9 +389,7 @@ public class BpmnElementTypeTest {
     void executeInstance(Map<String, String> payload) {
       final String json =
           "{ "
-              + payload
-                  .entrySet()
-                  .stream()
+              + payload.entrySet().stream()
                   .map(e -> String.format("\"%s\":\"%s\"", e.getKey(), e.getValue()))
                   .collect(Collectors.joining(","))
               + " }";

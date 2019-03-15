@@ -236,8 +236,7 @@ public class CancelWorkflowInstanceTest {
             .collect(Collectors.toList());
 
     final List<Record<WorkflowInstanceRecordValue>> terminatedElements =
-        workflowEvents
-            .stream()
+        workflowEvents.stream()
             .filter(r -> r.getMetadata().getIntent() == WorkflowInstanceIntent.ELEMENT_TERMINATED)
             .collect(Collectors.toList());
 
