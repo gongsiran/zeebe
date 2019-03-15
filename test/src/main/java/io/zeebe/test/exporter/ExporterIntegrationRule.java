@@ -125,7 +125,7 @@ public class ExporterIntegrationRule extends ExternalResource {
       Bpmn.createExecutableProcess("testProcess")
           .startEvent()
           .intermediateCatchEvent(
-              "message", e -> e.message(m -> m.name("catch").zeebeCorrelationKey("$.orderId")))
+              "message", e -> e.message(m -> m.name("catch").zeebeCorrelationKey("orderId")))
           .serviceTask("task", t -> t.zeebeTaskType("work").zeebeTaskHeader("foo", "bar"))
           .endEvent()
           .done();
@@ -159,7 +159,9 @@ public class ExporterIntegrationRule extends ExternalResource {
 
   /** @return the currently configured exporters */
   public List<ExporterCfg> getConfiguredExporters() {
-    return getBrokerConfig().getExporters().stream()
+    return getBrokerConfig()
+        .getExporters()
+        .stream()
         .filter(cfg -> !cfg.getId().equals(TEST_RECORD_EXPORTER_ID))
         .collect(Collectors.toList());
   }
@@ -178,7 +180,8 @@ public class ExporterIntegrationRule extends ExternalResource {
    * @return instantiated configuration class based on the exporter args map
    */
   public <T> T getExporterConfiguration(String id, Class<T> configurationClass) {
-    return getConfiguredExporters().stream()
+    return getConfiguredExporters()
+        .stream()
         .filter(cfg -> cfg.getId().equals(id))
         .findFirst()
         .map(cfg -> convertMapToConfig(cfg.getArgs(), configurationClass))
