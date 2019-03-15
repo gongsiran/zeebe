@@ -82,6 +82,7 @@ public class ZeebeRocksDbTest {
 
     // when
     db = dbFactory.createDb(pathName);
+    dbContext.setTransactionProvider(db::getTransaction);
 
     // then
     columnFamily = db.createColumnFamily(dbContext, DefaultColumnFamily.DEFAULT, key, value);
@@ -112,6 +113,7 @@ public class ZeebeRocksDbTest {
     assertThat(pathName.listFiles()).isNotEmpty();
     db.close();
     db = dbFactory.createDb(snapshotDir);
+    dbContext.setTransactionProvider(db::getTransaction);
     columnFamily = db.createColumnFamily(dbContext, DefaultColumnFamily.DEFAULT, key, value);
 
     // then

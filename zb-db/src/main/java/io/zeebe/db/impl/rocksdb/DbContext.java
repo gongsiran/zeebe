@@ -65,19 +65,11 @@ public class DbContext {
     return prefixKeyBuffer;
   }
 
-  // TODO: only used by TransactionDb - delegate?
-  public ZeebeTransaction getTransaction() {
-    if (currentZeebeTransaction == null) {
-      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(new WriteOptions()));
-    }
-
-    return currentZeebeTransaction;
-  }
-
-  public ZeebeTransaction getTransaction(WriteOptions options) {
-    if (currentZeebeTransaction == null) {
-      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(options));
-    }
+  public ZeebeTransaction getCurrentTransaction() {
+    //    if (currentZeebeTransaction == null) {
+    //      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(new
+    // WriteOptions()));
+    //    }
 
     return currentZeebeTransaction;
   }
@@ -88,22 +80,22 @@ public class DbContext {
   }
 
   public void runInTransaction(TransactionOperation operations) {
-    if (currentZeebeTransaction != null) {
-      runInExistingTransaction(operations);
-    } else {
-      runInNewTransaction(operations);
-    }
-  }
-
-  private void runInNewTransaction(final TransactionOperation operations) {
     try {
-      try (final WriteOptions options = new WriteOptions()) {
-        final ZeebeTransaction transaction = getTransaction(options);
-        operations.run();
-        transaction.commit();
+      if (currentZeebeTransaction != null) {
+        runInExistingTransaction(operations);
+      } else {
+        runInNewTransaction(operations);
       }
     } catch (Exception e) {
       throw new RuntimeException(TRANSACTION_ERROR, e);
+    }
+  }
+
+  private void runInNewTransaction(final TransactionOperation operations) throws Exception {
+    try (final WriteOptions options = new WriteOptions()) {
+      final ZeebeTransaction transaction = getTransaction(options);
+      operations.run();
+      transaction.commit();
     } finally {
       if (currentZeebeTransaction != null) {
         currentZeebeTransaction.close();
@@ -112,12 +104,20 @@ public class DbContext {
     }
   }
 
-  private void runInExistingTransaction(TransactionOperation operations) {
-    try {
-      operations.run();
-    } catch (Exception e) {
-      throw new RuntimeException(TRANSACTION_ERROR);
+  private void runInExistingTransaction(TransactionOperation operations) throws Exception {
+    // try {
+    operations.run();
+    //    } catch (Exception e) {
+    //      throw new RuntimeException(TRANSACTION_ERROR);
+    //    }
+  }
+
+  private ZeebeTransaction getTransaction(WriteOptions options) {
+    if (currentZeebeTransaction == null) {
+      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(options));
     }
+
+    return currentZeebeTransaction;
   }
 
   public int getActivePrefixIterations() {

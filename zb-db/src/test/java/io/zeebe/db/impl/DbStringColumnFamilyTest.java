@@ -22,6 +22,7 @@ import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.db.impl.rocksdb.DbContext;
+import io.zeebe.db.impl.rocksdb.transaction.ZeebeTransactionDb;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -231,10 +232,9 @@ public class DbStringColumnFamilyTest {
                             columnFamily.whileEqualPrefix(key, (k2, v2) -> {});
                           });
                     }))
-        .hasRootCauseInstanceOf(IllegalStateException.class)
-        .hasMessage("Unexpected error occurred during RocksDB transaction.")
-        .hasStackTraceContaining(
-            "Currently nested prefix iterations are not supported! This will cause unexpected behavior.");
+        .hasRootCauseInstanceOf(RuntimeException.class)
+        .hasMessage(DbContext.TRANSACTION_ERROR)
+        .hasStackTraceContaining(ZeebeTransactionDb.NESTED_PREFIX_ITERATION_ERROR);
   }
 
   private void putKeyValuePair(String key, String value) {
