@@ -23,6 +23,7 @@ import io.zeebe.db.DbValue;
 import io.zeebe.db.KeyValuePairVisitor;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.rocksdb.DbContext;
+import io.zeebe.db.impl.rocksdb.DbContext.BufferSupplier;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -141,16 +142,6 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       throw new RuntimeException(String.format(ERROR_MESSAGE, "put"), e);
     }
   }
-
-  //  @Override
-  //  public void transaction(TransactionOperation operations) {
-  //    try {
-  //      operations.run();
-  //
-  //    } catch (Exception ex) {
-  //      throw new RuntimeException("Unexpected error occurred during RocksDB transaction.", ex);
-  //    }
-  //  }
 
   ////////////////////////////////////////////////////////////////////
   //////////////////////////// GET ///////////////////////////////////
@@ -337,22 +328,20 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
       KeyType keyInstance,
       ValueType valueInstance,
       KeyValuePairVisitor<KeyType, ValueType> visitor) {
-    final int previousActiveIterations = dbContext.getActivePrefixIterations();
-    final ExpandableArrayBuffer[] prefixKeyBuffers = dbContext.getPrefixKeyBuffers();
-
-    if (previousActiveIterations + 1 > prefixKeyBuffers.length) {
-      throw new IllegalStateException(NESTED_PREFIX_ITERATION_ERROR);
-    }
-
-    dbContext.incrementActivePrefixIterations();
-    final ExpandableArrayBuffer prefixKeyBuffer = prefixKeyBuffers[previousActiveIterations];
     final DirectBuffer keyViewBuffer = dbContext.getKeyViewBuffer();
     final DirectBuffer valueViewBuffer = dbContext.getValueViewBuffer();
     final ZeebeTransaction transaction = dbContext.getCurrentTransaction();
 
     try (ReadOptions options =
             new ReadOptions().setPrefixSameAsStart(true).setTotalOrderSeek(false);
-        RocksIterator iterator = newIterator(transaction, columnFamilyHandle, options)) {
+        RocksIterator iterator = newIterator(transaction, columnFamilyHandle, options);
+        BufferSupplier bufferSupplier = dbContext.getPrefixBufferSupplier()) {
+      final ExpandableArrayBuffer prefixKeyBuffer = bufferSupplier.getAvailablePrefixBuffer();
+
+      if (prefixKeyBuffer == null) {
+        throw new IllegalStateException(NESTED_PREFIX_ITERATION_ERROR);
+      }
+
       prefix.write(prefixKeyBuffer, 0);
       final int prefixLength = prefix.getLength();
 
@@ -371,8 +360,6 @@ public class ZeebeTransactionDb<ColumnFamilyNames extends Enum<ColumnFamilyNames
         shouldVisitNext =
             visit(keyViewBuffer, valueViewBuffer, keyInstance, valueInstance, visitor, iterator);
       }
-    } finally {
-      dbContext.decrementActivePrefixIterations();
     }
   }
 

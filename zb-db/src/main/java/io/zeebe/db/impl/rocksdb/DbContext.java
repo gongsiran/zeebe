@@ -24,26 +24,19 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.rocksdb.Transaction;
 import org.rocksdb.WriteOptions;
 
-// TODO: write class documentation
+/** This */
 public class DbContext {
-
   public static final String TRANSACTION_ERROR =
       "Unexpected error occurred during RocksDB transaction.";
-  private Function<WriteOptions, Transaction> transactionProvider;
-  private ZeebeTransaction currentZeebeTransaction;
 
   private final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
   private final ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
-  private final ExpandableArrayBuffer prefixKeyBuffer = new ExpandableArrayBuffer();
-
   private final DirectBuffer keyViewBuffer = new UnsafeBuffer(0, 0);
   private final DirectBuffer valueViewBuffer = new UnsafeBuffer(0, 0);
+  private final BufferSupplier bufferSupplier = new BufferSupplier();
 
-  private int activePrefixIterations = 0;
-  private final ExpandableArrayBuffer[] prefixKeyBuffers =
-      new ExpandableArrayBuffer[] {new ExpandableArrayBuffer(), new ExpandableArrayBuffer()};
-
-  public DbContext() {}
+  private Function<WriteOptions, Transaction> transactionProvider;
+  private ZeebeTransaction currentZeebeTransaction;
 
   public ExpandableArrayBuffer getKeyBuffer() {
     return keyBuffer;
@@ -61,17 +54,12 @@ public class DbContext {
     return valueViewBuffer;
   }
 
-  public ExpandableArrayBuffer getPrefixKeyBuffer() {
-    return prefixKeyBuffer;
+  public ZeebeTransaction getCurrentTransaction() {
+    return currentZeebeTransaction;
   }
 
-  public ZeebeTransaction getCurrentTransaction() {
-    //    if (currentZeebeTransaction == null) {
-    //      currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(new
-    // WriteOptions()));
-    //    }
-
-    return currentZeebeTransaction;
+  public BufferSupplier getPrefixBufferSupplier() {
+    return bufferSupplier;
   }
 
   public void setTransactionProvider(
@@ -82,7 +70,7 @@ public class DbContext {
   public void runInTransaction(TransactionOperation operations) {
     try {
       if (currentZeebeTransaction != null) {
-        runInExistingTransaction(operations);
+        operations.run();
       } else {
         runInNewTransaction(operations);
       }
@@ -104,14 +92,6 @@ public class DbContext {
     }
   }
 
-  private void runInExistingTransaction(TransactionOperation operations) throws Exception {
-    // try {
-    operations.run();
-    //    } catch (Exception e) {
-    //      throw new RuntimeException(TRANSACTION_ERROR);
-    //    }
-  }
-
   private ZeebeTransaction getTransaction(WriteOptions options) {
     if (currentZeebeTransaction == null) {
       currentZeebeTransaction = new ZeebeTransaction(transactionProvider.apply(options));
@@ -120,19 +100,22 @@ public class DbContext {
     return currentZeebeTransaction;
   }
 
-  public int getActivePrefixIterations() {
-    return activePrefixIterations;
-  }
+  // TODO: probably over-engineering
+  public class BufferSupplier implements AutoCloseable {
+    private int activePrefixIterations = 0;
+    private final ExpandableArrayBuffer[] prefixKeyBuffers =
+        new ExpandableArrayBuffer[] {new ExpandableArrayBuffer(), new ExpandableArrayBuffer()};
 
-  public void incrementActivePrefixIterations() {
-    this.activePrefixIterations++;
-  }
+    public ExpandableArrayBuffer getAvailablePrefixBuffer() {
+      if (activePrefixIterations < prefixKeyBuffers.length) {
+        return prefixKeyBuffers[activePrefixIterations++];
+      }
+      return null;
+    }
 
-  public void decrementActivePrefixIterations() {
-    this.activePrefixIterations--;
-  }
-
-  public ExpandableArrayBuffer[] getPrefixKeyBuffers() {
-    return prefixKeyBuffers;
+    @Override
+    public void close() {
+      activePrefixIterations--;
+    }
   }
 }
