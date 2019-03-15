@@ -16,11 +16,11 @@ You can think of Zeebe's workflow orchestration as a state machine. A workflow i
 
 ## Data Flow
 
-As Zeebe progresses from one task to the next in a workflow, it can move custom data in the form of a JSON document. This data is called the *workflow payload* and is created whenever a workflow is started.
+As Zeebe progresses from one task to the next in a workflow, it can move custom data in the form of variables. Variables are key-value-pairs and part of the workflow.
 
-![data-flow](/basics/workflows-data-flow.png)
+![data-flow](/basics/workflow-data-flow.png)
 
-Every job worker can read the current payload and modify it when completing a job so that data can be shared between different tasks in a workflow. A workflow model can contain simple yet powerful payload transformation instructions to keep workers decoupled from each other.
+Every job worker can read the variables and modify them when completing a job so that data can be shared between different tasks in a workflow. A workflow model can contain simple yet powerful variable transformation instructions to keep workers decoupled from each other.
 
 ## Data-based Conditions
 
